@@ -80,10 +80,7 @@ namespace NoteHighlightAddin
         {
             try
             {
-                HighLightSection section = (new GenerateHighLight()).Config;
-                var workingDirectory = Path.Combine(ProcessHelper.GetDirectoryFromPath(Assembly.GetCallingAssembly().Location), section.FolderName, section.ThemeFolder);
-
-                string[] files = Directory.GetFiles(workingDirectory, "*.theme");
+                string[] files = Directory.GetFiles(PathManager.ThemesFolder, "*.theme");
 
                 foreach (var item in files)
                 {
