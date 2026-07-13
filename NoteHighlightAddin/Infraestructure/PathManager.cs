@@ -10,17 +10,29 @@ namespace NoteHighlightAddin.Infrastructure
 {
     public static class PathManager
     {
-    public static string Root => Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+    public static string Root
+        {
+            get;
+        }
 
-    public static string Ribbon => Path.Combine(Root, "ribbon.xml");
+    static PathManager()
+        {
+            Root = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+        }
 
-    public static string HighlightFolder => Path.Combine(Root, "highlight");
+        public static string Ribbon => Combine("ribbon.xml");
 
-    public static string ThemesFolder => Path.Combine(HighlightFolder, "themes");
+    public static string HighlightFolder => Combine("highlight");
 
+    public static string ThemesFolder => Combine("highlight", "themes");
+    
+    public static string LanguagesFolder => Combine("highlight", "langDefs");
 
-    public static string LanguagesFolder => Path.Combine(HighlightFolder, "langDefs");
+     public static string HighlightExe => Combine("highlight", "highlight.exe");
 
-     public static string HighlightExe => Path.Combine(HighlightFolder, "highlight.exe");
+    private static string Combine(params string[] parts)
+        {
+            return Path.Combine(new[] { Root }.Concat(parts). ToArray());
+        }
     }
 }
