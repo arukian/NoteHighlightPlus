@@ -258,7 +258,7 @@ namespace NoteHighlightAddin
 
                     if (selectedText.Trim() != "")
                     {
-                        outline = GetOutline(pageXml);
+                        outline = OneNoteHelper.GetOutline(pageXml, ns);
                     }
                 }
 
@@ -430,26 +430,6 @@ namespace NoteHighlightAddin
                 }
             }
             return null;
-        }
-
-        private XElement GetOutline(string pageXml)
-        {
-            var node = XDocument.Parse(pageXml).Descendants(ns + "Outline")
-                                               .Where(n => n.Attribute("selected") != null && (n.Attribute("selected").Value == "all" || n.Attribute("selected").Value == "partial"))
-                                               .FirstOrDefault();
-            //if (node != null)
-            //{
-            //    var attrPos = node.Descendants(ns + "Position").FirstOrDefault();
-            //    if (attrPos != null)
-            //    {
-            //        var x = attrPos.Attribute("x").Value;
-            //        var y = attrPos.Attribute("y").Value;
-            //        return new string[] { x, y };
-            //    }
-            //}
-            //return null;
-
-            return node;
         }
 
         private string GetPageXml(string pageID)
