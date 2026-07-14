@@ -366,7 +366,7 @@ namespace NoteHighlightAddin
                     string[] position = null;
                     if (outline == null)
                     {
-                        position = GetMousePointPosition(pageXml);
+                        position = OneNoteHelper.GetMousePointPosition(pageXml, ns);
                     }
 
                     var page = InsertHighLightCode(htmlContent, position, parameters, outline, (new GenerateHighLight()).Config, selectedTextFormated, IsSelectedTextInline(pageXml));
@@ -414,24 +414,7 @@ namespace NoteHighlightAddin
         /// 取得滑鼠所在的點
         /// Get Mouse Point
         /// </summary>
-        private string[] GetMousePointPosition(string pageXml)
-        {
-            var node = XDocument.Parse(pageXml).Descendants(ns + "Outline")
-                                               .Where(n => n.Attribute("selected") != null && n.Attribute("selected").Value == "partial")
-                                               .FirstOrDefault();
-            if (node != null)
-            {
-                var attrPos = node.Descendants(ns + "Position").FirstOrDefault();
-                if (attrPos != null)
-                {
-                    var x = attrPos.Attribute("x").Value;
-                    var y = attrPos.Attribute("y").Value;
-                    return new string[] { x, y };
-                }
-            }
-            return null;
-        }
-
+       
         private string GetPageXml(string pageID)
         {
             string pageXml;
