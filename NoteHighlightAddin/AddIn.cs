@@ -45,6 +45,8 @@ namespace NoteHighlightAddin
 
         private MainForm mainForm;
 
+        private OneNoteService oneNoteService;
+
         string tag;
 
         private bool QuickStyle { get; set; }
@@ -128,25 +130,31 @@ namespace NoteHighlightAddin
 			SetOneNoteApplication((Application)Application);
 		}
 
-		public void SetOneNoteApplication(Application application)
-		{
-			OneNoteApplication = application;
-		}
+        // Updated to use OneNoteApplication from OneNoteService
+        public void SetOneNoteApplication(Application application)
+        {
+            OneNoteApplication = application;
+            oneNoteService = new OneNoteService(application);
+        }
 
-		/// <summary>
-		/// Cleanup
-		/// </summary>
-		/// <param name="RemoveMode"></param>
-		/// <param name="custom"></param>
-		[SuppressMessage("Microsoft.Reliability", "CA2001:AvoidCallingProblematicMethods", MessageId = "System.GC.Collect")]
-		public void OnDisconnection(ext_DisconnectMode RemoveMode, ref Array custom)
-		{
-			OneNoteApplication = null;
-			GC.Collect();
-			GC.WaitForPendingFinalizers();
-		}
+        /// <summary>
+        /// Cleanup
+        /// </summary>
+        /// <param name="RemoveMode"></param>
+        /// <param name="custom"></param>
+        [SuppressMessage("Microsoft.Reliability", "CA2001:AvoidCallingProblematicMethods", MessageId = "System.GC.Collect")]
 
-		public void OnStartupComplete(ref Array custom)
+        // Update for cleaning 
+        public void OnDisconnection(ext_DisconnectMode RemoveMode, ref Array custom)
+        {
+            oneNoteService = null;
+            OneNoteApplication = null;
+
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+        }
+
+        public void OnStartupComplete(ref Array custom)
 		{
 		}
 
@@ -214,8 +222,32 @@ namespace NoteHighlightAddin
                 //form.ShowDialog();
 
                 //TestForm t = new TestForm();
-                var pageNode = GetPageNode();
-                string pageXml = GetPageXml(pageNode.Attribute("ID").Value);
+
+                //Updated changed pageMode to ensure there is a page and avoid a null
+                var pageNode = oneNoteService.GetCurrentPageNode();
+
+                if (pageNode == null)
+                {
+                    MessageBox.Show(
+                        "No se pudo encontrar la página activa de OneNote.");
+
+                    return;
+                }
+
+                ns = oneNoteService.Namespace;
+
+                string pageId = pageNode.Attribute("ID")?.Value;
+
+                if (string.IsNullOrWhiteSpace(pageId))
+                {
+                    MessageBox.Show(
+                        "La página activa no contiene un identificador válido.");
+
+                    return;
+                }
+
+                string pageXml = oneNoteService.GetPageXml(pageId);
+                // end update 
                 string selectedText = "";
                 XElement outline = null;
                 bool selectedTextFormated = false;
@@ -324,7 +356,9 @@ namespace NoteHighlightAddin
                 string byteOrderMarkUtf8 = Encoding.UTF8.GetString(Encoding.UTF8.GetPreamble());
                 htmlContent = htmlContent.Replace(byteOrderMarkUtf8, "");
 
-                var pageNode = GetPageNode();
+                // Updated to use oneNoteService logic
+                var pageNode = oneNoteService.GetCurrentPageNode();
+                ns = oneNoteService.Namespace;
 
                 if (pageNode != null)
                 {
@@ -344,7 +378,8 @@ namespace NoteHighlightAddin
                         el.Attribute("indent").Value = "0";
                     }
 
-                    OneNoteApplication.UpdatePageContent(page.ToString(), DateTime.MinValue);
+                    // Updated to use oneNoteServices 
+                    oneNoteService.UpdatePageContent(page);
                 }
             }
             catch (Exception e)
