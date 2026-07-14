@@ -36,10 +36,12 @@ namespace GenerateHighlightContent
 
         #region -- IGenerageHighLight Member --
 
+        // Updated to use HighlightConfigurationProvider
+
         public GenerateHighLight()
         {
-            Configuration c = ConfigurationManager.OpenExeConfiguration(Assembly.GetCallingAssembly().Location);
-            _section = c.GetSection("HighLightSection") as HighLightSection;
+            _section = HighlightConfigurationProvider.Load(
+                Assembly.GetCallingAssembly().Location);
         }
 
         /// <summary> 呼叫highlight.exe 產生高亮後的html </summary>
