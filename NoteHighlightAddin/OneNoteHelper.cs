@@ -75,6 +75,73 @@ namespace NoteHighlightAddin
                 yAttribute.Value
             };
         }
+
+        public static bool IsSelectedTextInline(
+    string pageXml,
+    XNamespace ns)
+        {
+            if (string.IsNullOrWhiteSpace(pageXml))
+            {
+                throw new ArgumentException(
+                    "El XML de la página no puede estar vacío.",
+                    nameof(pageXml));
+            }
+
+            XElement outline = XDocument
+                .Parse(pageXml)
+                .Descendants(ns + "Outline")
+                .FirstOrDefault(
+                    node =>
+                        node.Attribute("selected") != null &&
+                        (
+                            node.Attribute("selected").Value == "all" ||
+                            node.Attribute("selected").Value == "partial"
+                        ));
+
+            if (outline == null)
+            {
+                return false;
+            }
+
+            XElement table = outline
+                .Descendants(ns + "Table")
+                .FirstOrDefault(
+                    node =>
+                        node.Attribute("selected") != null &&
+                        (
+                            node.Attribute("selected").Value == "all" ||
+                            node.Attribute("selected").Value == "partial"
+                        ));
+
+            if (table != null)
+            {
+                return false;
+            }
+
+            foreach (XElement oeNode in outline.Descendants(ns + "OE"))
+            {
+                bool hasSelectedText = oeNode
+                    .Descendants(ns + "T")
+                    .Any(
+                        node =>
+                            node.Attribute("selected") != null &&
+                            node.Attribute("selected").Value == "all");
+
+                bool hasUnselectedText = oeNode
+                    .Descendants(ns + "T")
+                    .Any(
+                        node =>
+                            node.Attribute("selected") == null ||
+                            node.Attribute("selected").Value == "none");
+
+                if (hasSelectedText && hasUnselectedText)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
     }
 
 

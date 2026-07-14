@@ -369,7 +369,7 @@ namespace NoteHighlightAddin
                         position = OneNoteHelper.GetMousePointPosition(pageXml, ns);
                     }
 
-                    var page = InsertHighLightCode(htmlContent, position, parameters, outline, (new GenerateHighLight()).Config, selectedTextFormated, IsSelectedTextInline(pageXml));
+                    var page = InsertHighLightCode(htmlContent, position, parameters, outline, (new GenerateHighLight()).Config, selectedTextFormated, OneNoteHelper.IsSelectedTextInline(pageXml,ns));
                     page.Root.SetAttributeValue("ID", existingPageId);
 
                     //Bug fix - remove overflow value for Indents
@@ -468,32 +468,6 @@ namespace NoteHighlightAddin
                 }
             }
             return sb.ToString().TrimEnd('\r','\n');
-        }
-
-        public bool IsSelectedTextInline(string pageXml)
-        {
-            var node = XDocument.Parse(pageXml).Descendants(ns + "Outline")
-                                               .Where(n => n.Attribute("selected") != null && (n.Attribute("selected").Value == "all" || n.Attribute("selected").Value == "partial"))
-                                               .FirstOrDefault();
-
-            if (node != null)
-            {
-                var table = node.Descendants(ns + "Table").Where(n => n.Attribute("selected") != null && (n.Attribute("selected").Value == "all" || n.Attribute("selected").Value == "partial")).FirstOrDefault();
-
-                System.Collections.Generic.IEnumerable<XElement> attrPos;
-                if (table == null)
-                {
-                    foreach (var oeNode in node.Descendants(ns + "OE"))
-                    {
-                        if (oeNode.Descendants(ns + "T").Where(n => n.Attribute("selected") != null && n.Attribute("selected").Value == "all").Count() > 0
-                                        && oeNode.Descendants(ns + "T").Where(n => n.Attribute("selected") == null || n.Attribute("selected").Value == "none").Count() > 0)
-                        {
-                            return true;
-                        } 
-                    }
-                }
-            }
-            return false;
         }
 
         /// <summary>
