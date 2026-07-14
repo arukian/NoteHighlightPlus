@@ -7,6 +7,8 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Configuration;
 using Helper;
+using Infrastructure.Core;
+
 
 namespace GenerateHighlightContent
 {
@@ -56,7 +58,7 @@ namespace GenerateHighlightContent
 
             if (_section == null)
                 throw new FileNotFoundException("ConfigurationManager.GetSection(\"HighLightSection\") failed!");
-            var workingDirectory = Path.Combine(ProcessHelper.GetDirectoryFromPath(Assembly.GetCallingAssembly().Location), _section.FolderName);
+            var workingDirectory = Path.Combine(ProcessHelper.GetDirectoryFromPath(Assembly.GetCallingAssembly().Location),_section.FolderName);
 
             ProcessHelper helper = new ProcessHelper(workingDirectory, _section.ProcessName);
             helper.Arguments = GenerateArguments(inputFileName, outputFileName);

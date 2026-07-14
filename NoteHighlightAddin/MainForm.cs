@@ -14,6 +14,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using Infrastructure.Core;
 
 namespace NoteHighlightAddin
 {
@@ -93,8 +94,8 @@ namespace NoteHighlightAddin
                 return;
             }
 
-            
-            
+
+
         }
 
         #endregion
@@ -219,7 +220,7 @@ namespace NoteHighlightAddin
                             int endTextIndex = nrLine.IndexOf(span);
                             int startTextIndex = nrLine.LastIndexOf(">", endTextIndex) + 1;
 
-                            nrLine = nrLine.Substring(0, startTextIndex) + nrLine.Substring(startTextIndex, endTextIndex-startTextIndex).Replace(" ", "&nbsp;") + nrLine.Substring(endTextIndex);
+                            nrLine = nrLine.Substring(0, startTextIndex) + nrLine.Substring(startTextIndex, endTextIndex - startTextIndex).Replace(" ", "&nbsp;") + nrLine.Substring(endTextIndex);
 
                             sbLine.Append(nrLine);
                         }
@@ -302,7 +303,7 @@ namespace NoteHighlightAddin
         private void btnBackground_Click(object sender, EventArgs e)
         {
             contextMenuStrip1.Show(btnBackground, new Point(0, btnBackground.Height));
-            
+
         }
 
         private void MainForm_Shown(object sender, EventArgs e)
@@ -311,7 +312,8 @@ namespace NoteHighlightAddin
             if (_quickStyle)
             {
                 btnCodeHighLight.PerformClick()
-;            }
+;
+            }
             else
             {
                 // This is necessary in order for SetForegroundWindow to work consistently

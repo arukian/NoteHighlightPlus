@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Reflection;
 
-namespace NoteHighlightAddin.Infrastructure
+namespace Infrastructure.Core
 {
     public static class PathManager
     {

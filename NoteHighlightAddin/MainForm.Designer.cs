@@ -1,5 +1,5 @@
 ﻿namespace NoteHighlightAddin
-{ 
+{
     partial class MainForm
     {
         /// <summary>
