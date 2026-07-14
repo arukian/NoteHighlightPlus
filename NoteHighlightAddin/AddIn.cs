@@ -27,7 +27,7 @@ using System.Web;
 using GenerateHighlightContent;
 using System.Configuration;
 using System.Globalization;
-using NoteHighlightAddin.Infrastructure;
+using Infrastructure.Core;
 
 #pragma warning disable CS3003 // Type is not CLS-compliant
 

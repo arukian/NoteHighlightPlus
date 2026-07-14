@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using System.IO;
 using System.Diagnostics;
@@ -57,23 +55,36 @@ namespace GenerateHighlightContent
             File.WriteAllText(inputFileName, Content, Encoding.UTF8);
 
             if (_section == null)
-                throw new FileNotFoundException("ConfigurationManager.GetSection(\"HighLightSection\") failed!");
-            var workingDirectory = Path.Combine(ProcessHelper.GetDirectoryFromPath(Assembly.GetCallingAssembly().Location),_section.FolderName);
+            {
+                throw new FileNotFoundException(
+                    "ConfigurationManager.GetSection(\"HighLightSection\") failed!");
+            }
 
-            ProcessHelper helper = new ProcessHelper(workingDirectory, _section.ProcessName);
-            helper.Arguments = GenerateArguments(inputFileName, outputFileName);
+            var workingDirectory = PathManager.HighlightFolder;
+
+            ProcessHelper helper = new ProcessHelper(
+                workingDirectory,
+                _section.ProcessName);
+
+            helper.Arguments = GenerateArguments(
+                inputFileName,
+                outputFileName);
+
             helper.IsWaitForInputIdle = false;
             helper.WindowStyle = ProcessWindowStyle.Hidden;
 
             helper.ProcessStart();
 
             if (!File.Exists(outputFileName))
-                throw new FileNotFoundException("Can not find outputFile.");
+            {
+                throw new FileNotFoundException(
+                    "Can not find outputFile.");
+            }
 
             File.Delete(inputFileName);
+
             return outputFileName;
         }
-
         /// <summary> 初始化參數 </summary>
         private void InitParameter(HighLightParameter parameter)
         {

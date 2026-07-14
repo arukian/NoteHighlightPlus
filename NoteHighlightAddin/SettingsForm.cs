@@ -9,7 +9,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using NoteHighlightAddin.Infrastructure;
+using Infrastructure.Core;
 
 namespace NoteHighlightAddin
 {

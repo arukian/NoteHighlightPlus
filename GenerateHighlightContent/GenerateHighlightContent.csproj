@@ -79,6 +79,10 @@
       <Project>{391303f3-b2f5-45dc-9d0d-f4d6d3a76a5d}</Project>
       <Name>Helper</Name>
     </ProjectReference>
+    <ProjectReference Include="..\Infrastructure.Core\Infrastructure.Core.csproj">
+      <Project>{63345e8a-eed1-480c-ab98-a35fd71dec97}</Project>
+      <Name>Infrastructure.Core</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
