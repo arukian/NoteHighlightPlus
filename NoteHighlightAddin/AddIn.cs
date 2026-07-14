@@ -57,12 +57,18 @@ namespace NoteHighlightAddin
 		{
 		}
 
-		/// <summary>
-		/// Returns the XML in Ribbon.xml so OneNote knows how to render our ribbon
-		/// </summary>
-		/// <param name="RibbonID"></param>
-		/// <returns></returns>
-		public string GetCustomUI(string RibbonID)
+        // Added as reference since UnitTesting was still calling for this method and it was not available in the OneNoteService class.  This is a temporary solution until the UnitTests are updated to use the OneNoteService class.
+        public bool IsSelectedTextInline(string pageXml)
+        {
+            return OneNoteHelper.IsSelectedTextInline(pageXml, ns);
+        }
+
+        /// <summary>
+        /// Returns the XML in Ribbon.xml so OneNote knows how to render our ribbon
+        /// </summary>
+        /// <param name="RibbonID"></param>
+        /// <returns></returns>
+        public string GetCustomUI(string RibbonID)
 		{
             return LoadRibbon();
 
