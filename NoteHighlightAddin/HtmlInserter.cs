@@ -1,12 +1,19 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Linq;
 
 namespace NoteHighlightAddin
 {
-    internal class HtmlInserter
+    public class HtmlInserter
     {
+        public bool ContainsAsianCharacter(string text)
+        {
+            if (string.IsNullOrEmpty(text))
+            {
+                return false;
+            }
+
+            return text.Any(character =>
+                (uint)character >= 0x4E00 &&
+                (uint)character <= 0x2FA1F);
+        }
     }
 }

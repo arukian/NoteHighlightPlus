@@ -45,6 +45,8 @@ namespace NoteHighlightAddin
 
         private MainForm mainForm;
 
+        private readonly HtmlInserter htmlInserter;
+
         private OneNoteService oneNoteService;
 
         string tag;
@@ -55,7 +57,8 @@ namespace NoteHighlightAddin
 
         public AddIn()
 		{
-		}
+            htmlInserter = new HtmlInserter();
+        }
 
         // Added as reference since UnitTesting was still calling for this method and it was not available in the OneNoteService class.  This is a temporary solution until the UnitTests are updated to use the OneNoteService class.
         public bool IsSelectedTextInline(string pageXml)
@@ -260,7 +263,7 @@ namespace NoteHighlightAddin
 
                 if (pageNode != null)
                 {
-                    selectedText = GetSelectedText(pageXml, out selectedTextFormated);
+                    selectedText = OneNoteHelper.GetSelectedText(pageXml, ns, out selectedTextFormated);
 
                     if (selectedText.Trim() != "")
                     {
@@ -431,49 +434,7 @@ namespace NoteHighlightAddin
 
         public string GetSelectedText(string pageXml, out bool selectedTextFormated)
         {
-            var node = XDocument.Parse(pageXml).Descendants(ns + "Outline")
-                                               .Where(n => n.Attribute("selected") != null && (n.Attribute("selected").Value == "all" || n.Attribute("selected").Value == "partial"))
-                                               .FirstOrDefault();
-            
-            StringBuilder sb = new StringBuilder();
-            selectedTextFormated = false;
-            if (node != null)
-            {
-                var table = node.Descendants(ns + "Table").Where(n => n.Attribute("selected") != null && (n.Attribute("selected").Value == "all" || n.Attribute("selected").Value == "partial")).FirstOrDefault();
-
-                System.Collections.Generic.IEnumerable<XElement> attrPos;
-                if (table == null)
-                {
-                    attrPos = node.Descendants(ns + "T").Where(n => n.Attribute("selected") != null && n.Attribute("selected").Value == "all");
-                }
-                else
-                {
-                    attrPos = table.Descendants(ns + "Cell").LastOrDefault().Descendants(ns + "T").Where(n => n.Attribute("selected") != null && n.Attribute("selected").Value == "all");
-                    selectedTextFormated = true;
-                }
-                int tabCount = 0;
-                int initTabCount = -1;
-                foreach (var line in attrPos)
-                {
-                    var htmlDocument = new HtmlAgilityPack.HtmlDocument();
-                    htmlDocument.LoadHtml(line.Value);
-
-                    if (initTabCount == -1)
-                    {
-                        initTabCount = line.Ancestors().Elements(ns + "T").Count();
-                    }
-                    tabCount = line.Ancestors().Elements(ns + "T").Count() - initTabCount;
-
-                    if (tabCount < 0)
-                    {
-                        tabCount = 0;
-                    }
-
-
-                    sb.AppendLine(new String('\t', tabCount) + HttpUtility.HtmlDecode(htmlDocument.DocumentNode.InnerText));
-                }
-            }
-            return sb.ToString().TrimEnd('\r','\n');
+            return OneNoteHelper.GetSelectedText(pageXml, ns, out selectedTextFormated);
         }
 
         /// <summary>
@@ -664,7 +625,7 @@ namespace NoteHighlightAddin
                     XElement oeElement = new XElement(ns + "OE",
                                     new XElement(ns + "T",
                                         new XCData(nr)));
-                    if (ContainsAsianCharacter(itemLine))
+                    if (htmlInserter.ContainsAsianCharacter(itemLine))
                     {
                         oeElement.Add(new XAttribute("spaceBefore", config.AsianBeforeSpace));
                         oeElement.Add(new XAttribute("spaceAfter", config.AsianAfterSpace));
@@ -702,9 +663,9 @@ namespace NoteHighlightAddin
             return children;
         }
 
-        private bool ContainsAsianCharacter(string itemLine)
+        public bool ContainsAsianCharacter(string itemLine)
         {
-            return itemLine.Any(c => (uint)c >= 0x4E00 && (uint)c <= 0x2FA1F);
+            return htmlInserter.ContainsAsianCharacter(itemLine);
         }
     }
 }
