@@ -45,7 +45,7 @@ namespace NoteHighlightAddin
 
         private MainForm mainForm;
 
-        private readonly HtmlInserter htmlInserter;
+        private HtmlInserter htmlInserter;
 
         private OneNoteService oneNoteService;
 
@@ -57,7 +57,6 @@ namespace NoteHighlightAddin
 
         public AddIn()
 		{
-            htmlInserter = new HtmlInserter();
         }
 
         // Added as reference since UnitTesting was still calling for this method and it was not available in the OneNoteService class.  This is a temporary solution until the UnitTests are updated to use the OneNoteService class.
@@ -244,6 +243,7 @@ namespace NoteHighlightAddin
                 }
 
                 ns = oneNoteService.Namespace;
+                htmlInserter = new HtmlInserter(ns);
 
                 string pageId = pageNode.Attribute("ID")?.Value;
 
@@ -368,6 +368,7 @@ namespace NoteHighlightAddin
                 // Updated to use oneNoteService logic
                 var pageNode = oneNoteService.GetCurrentPageNode();
                 ns = oneNoteService.Namespace;
+                htmlInserter = new HtmlInserter(ns);
 
                 if (pageNode != null)
                 {
@@ -446,9 +447,10 @@ namespace NoteHighlightAddin
             XElement children = PrepareFormatedContent(htmlContent, parameters, config, isInline);
 
             bool update = false;
+            // this has been updated to include htmlinserter
             if (outline == null)
             {
-                outline = CreateOutline(position, children);
+                outline = htmlInserter.CreateOutline(position, children);
             }
             else // Update exiting outline
             {
@@ -507,164 +509,48 @@ namespace NoteHighlightAddin
 
         }
 
-        private XElement CreateOutline(string[] position, XElement children)
+        // Added as reference to the bridge
+        private void EnsureHtmlInserter()
         {
-            XElement outline = new XElement(ns + "Outline");
-            if (position != null && position.Length == 2)
+            if (htmlInserter == null)
             {
-                XElement pos = new XElement(ns + "Position");
-                pos.Add(new XAttribute("x", position[0]));
-                pos.Add(new XAttribute("y", position[1]));
-                outline.Add(pos);
-
-                XElement size = new XElement(ns + "Size");
-                size.Add(new XAttribute("width", "1600"));
-                size.Add(new XAttribute("height", "200"));
-                outline.Add(size);
+                htmlInserter = new HtmlInserter(ns);
             }
-            outline.Add(children);
-            return outline;
         }
 
-        private XElement PrepareFormatedContent(string htmlContent, HighLightParameter parameters, HighLightSection config, bool isInline)
+        // updated function to work as a bridge for UnitTesting
+        public XElement CreateOutline(string[] position, XElement children)
         {
-            XElement children = new XElement(ns + "OEChildren");
+            EnsureHtmlInserter();
 
-            XElement table = new XElement(ns + "Table");
-            table.Add(new XAttribute("bordersVisible", NoteHighlightForm.Properties.Settings.Default.ShowTableBorder));
-
-            XElement columns = new XElement(ns + "Columns");
-            XElement column1 = new XElement(ns + "Column");
-            column1.Add(new XAttribute("index", "0"));
-            column1.Add(new XAttribute("width", "40"));
-            if (parameters.ShowLineNumber && !isInline)
-            {
-                columns.Add(column1);
-            }
-            XElement column2 = new XElement(ns + "Column");
-            if (parameters.ShowLineNumber && !isInline)
-            {
-                column2.Add(new XAttribute("index", "1"));
-            }
-            else
-            {
-                column2.Add(new XAttribute("index", "0"));
-            }
-
-            column2.Add(new XAttribute("width", "1400"));
-            columns.Add(column2);
-
-            table.Add(columns);
-
-            Color color = parameters.HighlightColor;
-            string colorString = color.A == 0 ? "none" : string.Format("#{0:X2}{1:X2}{2:X2}", color.R, color.G, color.B);
-
-            XElement row = new XElement(ns + "Row");
-            XElement cell1 = new XElement(ns + "Cell");
-            cell1.Add(new XAttribute("shadingColor", colorString));
-            XElement cell2 = new XElement(ns + "Cell");
-            cell2.Add(new XAttribute("shadingColor", colorString));
-
-
-            string defaultStyle = "";
-
-            var arrayLine = htmlContent.Split(new string[] { Environment.NewLine }, StringSplitOptions.None);
-            foreach (var it in arrayLine)
-            {
-                string item = it;
-
-                if (item.StartsWith("<pre"))
-                {
-                    defaultStyle = item.Substring(0, item.IndexOf(">") + 1);
-                    //Sets language to Latin to disable spell check
-                    defaultStyle = defaultStyle.Insert(defaultStyle.Length - 1, " lang=la");
-
-                    if (this.DarkMode)
-                    {
-                        //Remove background-color element so that text would render with correct contrast in dark mode
-                        int bcIndex = defaultStyle.IndexOf("background-color");
-                        defaultStyle = defaultStyle.Remove(bcIndex, defaultStyle.IndexOf(';', bcIndex) - bcIndex +1);
-                    }
-
-                    item = item.Substring(item.IndexOf(">") + 1);
-                }
-
-                if (item == "</pre>")
-                {
-                    continue;
-                }
-
-                var itemNr = "";
-                var itemLine = "";
-                if (parameters.ShowLineNumber)
-                {
-                    if (item.Contains("</span>"))
-                    {
-                        int ind = item.IndexOf("</span>");
-                        itemNr = item.Substring(0, ind + ("</span>").Length);
-                        itemLine = item.Substring(ind);
-                    }
-                    else
-                    {
-                        itemNr = "";
-                        itemLine = item;
-                    }
-
-                    //string nr = string.Format(@"<body style=""font-family:{0}"">", GenerateHighlightContent.GenerateHighLight.Config.OutputArguments["Font"].Value) +
-                    //        itemNr.Replace("&apos;", "'") + "</body>";
-                    string nr = "";
-                    if (string.IsNullOrEmpty(config.LineNrReplaceCh))
-                    {
-                        nr = defaultStyle + itemNr.Replace("&apos;", "'") + "</pre>";
-                    }
-                    else
-                    {
-                        nr = defaultStyle + config.LineNrReplaceCh.PadLeft(5) + "</pre>";
-                    }
-
-                    XElement oeElement = new XElement(ns + "OE",
-                                    new XElement(ns + "T",
-                                        new XCData(nr)));
-                    if (htmlInserter.ContainsAsianCharacter(itemLine))
-                    {
-                        oeElement.Add(new XAttribute("spaceBefore", config.AsianBeforeSpace));
-                        oeElement.Add(new XAttribute("spaceAfter", config.AsianAfterSpace));
-                    }
-
-                    cell1.Add(new XElement(ns + "OEChildren",
-                               oeElement ));
-                }
-                else
-                {
-                    itemLine = item;
-                }
-                //string s = item.Replace(@"style=""", string.Format(@"style=""font-family:{0}; ", GenerateHighlightContent.GenerateHighLight.Config.OutputArguments["Font"].Value));
-                //string s = string.Format(@"<body style=""font-family:{0}"">", GenerateHighlightContent.GenerateHighLight.Config.OutputArguments["Font"].Value) + 
-                //            itemLine.Replace("&apos;", "'") + "</body>";
-                string s = defaultStyle + itemLine.Replace("&apos;", "'") + "</pre>";
-
-                cell2.Add(new XElement(ns + "OEChildren",
-                            new XElement(ns + "OE",
-                                new XElement(ns + "T",
-                                    new XCData(s)))));
-
-            }
-
-            if (parameters.ShowLineNumber && !isInline)
-            {
-                row.Add(cell1);
-            }
-            row.Add(cell2);
-
-            table.Add(row);
-
-            children.Add(new XElement(ns + "OE",
-                                table));
-            return children;
+            return htmlInserter.CreateOutline(position, children);
         }
+
+        // converted PrepareFormatedContent to Bridge 
+
+        public XElement PrepareFormatedContent(
+    string htmlContent,
+    HighLightParameter parameters,
+    HighLightSection config,
+    bool isInline)
+        {
+            EnsureHtmlInserter();
+
+            return htmlInserter.PrepareFormatedContent(
+                htmlContent,
+                parameters,
+                config,
+                isInline,
+                DarkMode,
+                NoteHighlightForm.Properties.Settings.Default.ShowTableBorder);
+        }
+
+        // Updated bridge }
 
         public bool ContainsAsianCharacter(string itemLine)
         {
+            EnsureHtmlInserter();
+
             return htmlInserter.ContainsAsianCharacter(itemLine);
         }
     }
