@@ -105,6 +105,7 @@
     <Compile Include="CCOMStreamWrapper.cs" />
     <Compile Include="AddIn.cs" />
     <Compile Include="CodeEditorLanguageMapper.cs" />
+    <Compile Include="HighlightGenerationService.cs" />
     <Compile Include="HighLightParameterFactory.cs" />
     <Compile Include="HtmlFragment.cs" />
     <Compile Include="HtmlInserter.cs" />

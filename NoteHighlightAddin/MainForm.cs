@@ -44,6 +44,8 @@ namespace NoteHighlightAddin
 
         private readonly MainFormSettingsProvider _settingsProvider;
 
+        private readonly HighlightGenerationService _highlightGenerationService;
+
         //HighLight的樣式
         private string CodeStyle { get { return this.cbx_style.Text; } }
 
@@ -84,6 +86,7 @@ namespace NoteHighlightAddin
             _parameterFactory = new HighLightParameterFactory();
             _languageMapper = new CodeEditorLanguageMapper();
             _settingsProvider = new MainFormSettingsProvider();
+            _highlightGenerationService = new HighlightGenerationService();
 
             InitializeComponent();
             LoadThemes();
@@ -165,7 +168,6 @@ namespace NoteHighlightAddin
                 return;
             }
 
-            IGenerateHighLight generate = new GenerateHighLight();
             string outputFileName = string.Empty;
 
             MainFormSettings settings = _settingsProvider.Load();
@@ -182,7 +184,8 @@ namespace NoteHighlightAddin
 
             try
             {
-                outputFileName = generate.GenerateHighLightCode(_parameters);
+                outputFileName =
+                    _highlightGenerationService.Generate(_parameters);
             }
             catch (Exception ex)
             {
