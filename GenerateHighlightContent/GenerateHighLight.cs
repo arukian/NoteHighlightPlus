@@ -1,12 +1,10 @@
 ﻿using System;
-using System.Text;
-using System.IO;
-using System.Diagnostics;
-using System.Reflection;
 using System.Configuration;
+using System.IO;
+using System.Reflection;
+using System.Text;
 using Helper;
 using Infrastructure.Core;
-
 
 namespace GenerateHighlightContent
 {
@@ -28,67 +26,90 @@ namespace GenerateHighlightContent
 
         public int FontSize { get; set; }
 
-        /// <summary> highlight.exe 參數 設定於 App.config 的 HighLightSection 區塊 </summary>
-        private HighLightSection _section;
+        private readonly HighLightSection _section;
+        private readonly HighlightProcessRunner _processRunner;
 
-        public HighLightSection Config { get { return _section; } }
-        #endregion
-
-        #region -- IGenerageHighLight Member --
-
-        // Updated to use HighlightConfigurationProvider
-
-        public GenerateHighLight()
+        public HighLightSection Config
         {
-            _section = HighlightConfigurationProvider.Load(
-                Assembly.GetCallingAssembly().Location);
+            get { return _section; }
         }
 
-        /// <summary> 呼叫highlight.exe 產生高亮後的html </summary>
-        /// <returns>回傳 Html 所在的路徑</returns>
-        public string GenerateHighLightCode(HighLightParameter parameter)
+        #endregion
+
+        #region -- IGenerateHighLight Member --
+
+        public GenerateHighLight()
+            : this(
+                HighlightConfigurationProvider.Load(
+                    Assembly.GetCallingAssembly().Location),
+                new HighlightProcessRunner())
         {
+        }
+
+        public GenerateHighLight(
+            HighLightSection section,
+            HighlightProcessRunner processRunner)
+        {
+            _section = section
+                ?? throw new ArgumentNullException(nameof(section));
+
+            _processRunner = processRunner
+                ?? throw new ArgumentNullException(nameof(processRunner));
+        }
+
+        public string GenerateHighLightCode(
+            HighLightParameter parameter)
+        {
+            if (parameter == null)
+            {
+                throw new ArgumentNullException(nameof(parameter));
+            }
+
             InitParameter(parameter);
 
             string tempPath = Path.GetTempPath();
-            string inputFileName = Path.Combine(tempPath, FileName);
-            string outputFileName = Path.Combine(tempPath, FileName) + ".html";
+            string inputFileName =
+                Path.Combine(tempPath, FileName);
 
-            File.WriteAllText(inputFileName, Content, Encoding.UTF8);
+            string outputFileName =
+                Path.Combine(tempPath, FileName) + ".html";
 
-            if (_section == null)
-            {
-                throw new FileNotFoundException(
-                    "ConfigurationManager.GetSection(\"HighLightSection\") failed!");
-            }
-
-            var workingDirectory = PathManager.HighlightFolder;
-
-            ProcessHelper helper = new ProcessHelper(
-                workingDirectory,
-                _section.ProcessName);
-
-            helper.Arguments = GenerateArguments(
+            File.WriteAllText(
                 inputFileName,
-                outputFileName);
+                Content,
+                Encoding.UTF8);
 
-            helper.IsWaitForInputIdle = false;
-            helper.WindowStyle = ProcessWindowStyle.Hidden;
-
-            helper.ProcessStart();
-
-            if (!File.Exists(outputFileName))
+            try
             {
-                throw new FileNotFoundException(
-                    "Can not find outputFile.");
+                string arguments = GenerateArguments(
+                    inputFileName,
+                    outputFileName);
+
+                _processRunner.Run(
+                    PathManager.HighlightFolder,
+                    _section.ProcessName,
+                    arguments);
+
+                if (!File.Exists(outputFileName))
+                {
+                    throw new FileNotFoundException(
+                        "Can not find outputFile.",
+                        outputFileName);
+                }
+
+                return outputFileName;
             }
-
-            File.Delete(inputFileName);
-
-            return outputFileName;
+            finally
+            {
+                if (File.Exists(inputFileName))
+                {
+                    File.Delete(inputFileName);
+                }
+            }
         }
-        /// <summary> 初始化參數 </summary>
-        private void InitParameter(HighLightParameter parameter)
+
+        private void InitParameter(
+            HighLightParameter parameter)
         {
             Content = parameter.Content;
             CodeType = parameter.CodeType;
@@ -99,41 +120,83 @@ namespace GenerateHighlightContent
             FontSize = parameter.FontSize;
         }
 
-        /// <summary> 產生HighLight.exe 所需的參數 </summary>
-        private string GenerateArguments(string inputFileName, string outputFileName)
+        private string GenerateArguments(
+            string inputFileName,
+            string outputFileName)
         {
             StringBuilder sb = new StringBuilder();
 
-            ReadConfigCollection(sb, _section.GeneralArguments);
-            ReadConfigCollection(sb, _section.OutputArguments);
+            ReadConfigCollection(
+                sb,
+                _section.GeneralArguments);
+
+            ReadConfigCollection(
+                sb,
+                _section.OutputArguments);
 
             if (ShowLineNumber)
-                sb.Append(" " + _section.OutputArguments["LineNumbers"].Key);
-
-            string arguments = sb.ToString().TemplateSubstitute(new
             {
-                inputFileName = String.Format("\"{0}\"", inputFileName),
-                outputFileName = String.Format("\"{0}\"", outputFileName),
-                codeType = CodeType,
-                highLightStyle = HighLightStyle,
-                font = String.Format("\"{0}\"", Font),
-                fontSize = FontSize
-            });
+                Argument lineNumbersArgument =
+                    _section.OutputArguments["LineNumbers"];
 
-            return arguments;
+                if (lineNumbersArgument != null)
+                {
+                    sb.Append(" ");
+                    sb.Append(lineNumbersArgument.Key);
+                }
+            }
+
+            return sb
+                .ToString()
+                .TemplateSubstitute(new
+                {
+                    inputFileName =
+                        string.Format(
+                            "\"{0}\"",
+                            inputFileName),
+
+                    outputFileName =
+                        string.Format(
+                            "\"{0}\"",
+                            outputFileName),
+
+                    codeType = CodeType,
+                    highLightStyle = HighLightStyle,
+
+                    font =
+                        string.Format(
+                            "\"{0}\"",
+                            Font),
+
+                    fontSize = FontSize
+                });
         }
 
-        /// <summary> 讀取 ConfigurationElementCollection </summary>
-        private void ReadConfigCollection(StringBuilder sb, ConfigurationElementCollection collection)
+        private void ReadConfigCollection(
+            StringBuilder sb,
+            ConfigurationElementCollection collection)
         {
             foreach (Argument item in collection)
             {
                 if (item.Option)
+                {
                     continue;
+                }
 
                 sb.Append(item.Key);
-                if (!String.IsNullOrEmpty(item.Value))
-                    sb.Append(" " + (item.Value.Contains(" ") ? String.Format("\"{0}\"", item.Value) : item.Value));
+
+                if (!string.IsNullOrEmpty(item.Value))
+                {
+                    sb.Append(" ");
+
+                    sb.Append(
+                        item.Value.Contains(" ")
+                            ? string.Format(
+                                "\"{0}\"",
+                                item.Value)
+                            : item.Value);
+                }
+
                 sb.Append(" ");
             }
         }

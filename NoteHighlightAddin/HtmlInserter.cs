@@ -1,9 +1,12 @@
-﻿using System;
+﻿using GenerateHighlightContent;
+using NoteHighLightForm;
+using System;
 using System.Drawing;
+using System.Globalization;
 using System.Linq;
 using System.Xml.Linq;
-using GenerateHighlightContent;
-using NoteHighLightForm;
+using System.Globalization;
+using System.Linq;
 
 namespace NoteHighlightAddin
 {
@@ -255,38 +258,32 @@ namespace NoteHighlightAddin
             return children;
         }
 
-        public XDocument InsertHighLightCode(string htmlContent, string[] position, HighLightParameter parameters, XElement outline, HighLightSection config, bool selectedTextFormated,
-            bool isInline, bool darkMode,  bool showTableBorder)
+        public XDocument InsertHighLightCode(string htmlContent, string[] position, HighLightParameter parameters, XElement outline, HighLightSection config, bool selectedTextFormated, bool isInline, bool darkMode, bool showTableBorder)
         {
-            XElement children = PrepareFormatedContent(
-                htmlContent,
-                parameters,
-                config,
-                isInline,
-                darkMode,
-                showTableBorder);
+            XElement children = PrepareFormatedContent(htmlContent, parameters, config, isInline, darkMode, showTableBorder);
+
+            XDocument document;
 
             if (outline == null)
             {
-                XElement newOutline = CreateOutline(position, children);
+                XElement newOutline =
+                    CreateOutline(position, children);
 
-                return CreatePageDocument(newOutline);
+                document = CreatePageDocument(newOutline);
+            }
+            else
+            {
+                UpdateExistingOutline(outline, children, selectedTextFormated, isInline);
+
+                document = outline.Parent.Document;
             }
 
-            UpdateExistingOutline(
-                outline,
-                children,
-                selectedTextFormated,
-                isInline);
+            NormalizeIndentValues(document);
 
-            return outline.Parent.Document;
+            return document;
         }
 
-        private void UpdateExistingOutline(
-        XElement outline,
-        XElement children,
-        bool selectedTextFormated,
-        bool isInline)
+        private void UpdateExistingOutline(XElement outline, XElement children, bool selectedTextFormated, bool isInline)
         {
             // Change outline width.
             XElement size = outline.Element(ns + "Size");
@@ -446,8 +443,51 @@ namespace NoteHighlightAddin
             return new XDocument(page);
         }
 
+        public void NormalizeIndentValues(XDocument page)
+        {
+            if (page?.Root == null)
+            {
+                return;
+            }
 
+            string language = page.Root.Attribute("lang")?.Value;
 
+            CultureInfo culture;
 
+            try
+            {
+                culture = string.IsNullOrWhiteSpace(language)
+                    ? CultureInfo.InvariantCulture
+                    : new CultureInfo(language);
+            }
+            catch (CultureNotFoundException)
+            {
+                culture = CultureInfo.InvariantCulture;
+            }
+
+            foreach (XElement indentElement in page
+                .Descendants(ns + "Indent")
+                .ToList())
+            {
+                XAttribute indentAttribute =
+                    indentElement.Attribute("indent");
+
+                if (indentAttribute == null)
+                {
+                    continue;
+                }
+
+                double indentValue;
+
+                bool parsed =
+                    double.TryParse(indentAttribute.Value, NumberStyles.Float, culture, out indentValue) ||
+                    double.TryParse(indentAttribute.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out indentValue);
+
+                if (parsed && indentValue > 1000000)
+                {
+                    indentAttribute.Value = "0";
+                }
+            }
+        }
     }
 }
