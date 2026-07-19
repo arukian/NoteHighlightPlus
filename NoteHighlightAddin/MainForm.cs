@@ -1,27 +1,16 @@
 ﻿using GenerateHighlightContent;
-using Helper;
 using ICSharpCode.TextEditor.Document;
-using NoteHighLightForm;
 using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Configuration;
-using System.Data;
 using System.Drawing;
-using System.IO;
-using System.Linq;
-using System.Reflection;
 using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
-using Infrastructure.Core;
+
 
 namespace NoteHighlightAddin
 {
     public partial class MainForm : Form
     {
         #region -- Field and Property --
-        private const string span = "</span>";
 
         //檔案類型
         private string _codeType;
@@ -29,7 +18,6 @@ namespace NoteHighlightAddin
         //檔案名稱
         private string _fileName;
 
-        private HighLightParameter _parameters;
         private bool _darkMode;
 
         //要HighLight的Code
@@ -46,6 +34,8 @@ namespace NoteHighlightAddin
 
         private readonly HighlightGenerationService _highlightGenerationService;
 
+        private readonly HighlightClipboardService _clipboardService;
+
         //HighLight的樣式
         private string CodeStyle { get { return this.cbx_style.Text; } }
 
@@ -57,7 +47,7 @@ namespace NoteHighlightAddin
 
         private Color BackgroundColor { get { return this.btnBackground.BackColor; } }
 
-        public HighLightParameter Parameters { get { return _parameters; } }
+        public HighLightParameter Parameters { get; private set; }
 
         private bool _quickStyle;
 
@@ -87,6 +77,7 @@ namespace NoteHighlightAddin
             _languageMapper = new CodeEditorLanguageMapper();
             _settingsProvider = new MainFormSettingsProvider();
             _highlightGenerationService = new HighlightGenerationService();
+            _clipboardService = new HighlightClipboardService();
 
             InitializeComponent();
             LoadThemes();
@@ -157,6 +148,23 @@ namespace NoteHighlightAddin
             SaveSetting();
         }
 
+        // Added new function 
+
+        private HighlightWorkflowRequest BuildWorkflowRequest()
+        {
+            return new HighlightWorkflowRequest
+            {
+                FileName = _fileName,
+                Content = CodeContent,
+                CodeType = _codeType,
+                HighLightStyle = CodeStyle,
+                ShowLineNumber = IsShowLineNumber,
+                CopyToClipboard = IsClipboard,
+                DarkMode = DarkMode,
+                HighlightColor = BackgroundColor
+            };
+        }
+
         /// <summary>
         /// Generate HighLight File
         /// </summary>
@@ -170,22 +178,26 @@ namespace NoteHighlightAddin
 
             string outputFileName = string.Empty;
 
-            MainFormSettings settings = _settingsProvider.Load();
+            HighlightWorkflowRequest request =
+                BuildWorkflowRequest();
 
-            _parameters = _parameterFactory.Create(
-                _fileName,
-                CodeContent,
-                _codeType,
-                CodeStyle,
-                IsShowLineNumber,
-                BackgroundColor,
+            MainFormSettings settings =
+                _settingsProvider.Load();
+
+            Parameters = _parameterFactory.Create(
+                request.FileName,
+                request.Content,
+                request.CodeType,
+                request.HighLightStyle,
+                request.ShowLineNumber,
+                request.HighlightColor,
                 settings.Font,
                 settings.FontSize);
 
             try
             {
                 outputFileName =
-                    _highlightGenerationService.Generate(_parameters);
+                    _highlightGenerationService.Generate(Parameters);
             }
             catch (Exception ex)
             {
@@ -195,9 +207,13 @@ namespace NoteHighlightAddin
                 return;
             }
 
-            if (IsClipboard && !string.IsNullOrEmpty(outputFileName))
+            if (request.CopyToClipboard &&
+                !string.IsNullOrEmpty(outputFileName))
             {
-                InsertToClipboard(outputFileName);
+                _clipboardService.Copy(
+                    outputFileName,
+                    request.DarkMode,
+                    request.ShowLineNumber);
             }
 
             SaveSetting();
@@ -208,84 +224,6 @@ namespace NoteHighlightAddin
 
         #endregion
 
-        /// <summary>
-        /// Copy HighLight Code To Clipboard
-        /// </summary>
-        private void InsertToClipboard(string outputFileName)
-        {
-            StringBuilder sb = new StringBuilder();
-
-            using (FileStream fs = new FileStream(outputFileName, FileMode.Open, FileAccess.Read))
-            {
-                using (StreamReader sr = new StreamReader(fs, new UTF8Encoding(false)))
-                {
-                    //Fix 存到剪貼簿空白不見的問題
-                    while (sr.Peek() >= 0)
-                    {
-                        string line = sr.ReadLine();
-
-                        string byteOrderMarkUtf8 = Encoding.UTF8.GetString(Encoding.UTF8.GetPreamble());
-                        line = line.Replace(byteOrderMarkUtf8, "");
-
-                        if (line.StartsWith("<pre") && this.DarkMode)
-                        {
-
-                            //Remove background-color element so that text would render with correct contrast in dark mode
-                            int bcIndex = line.IndexOf("background-color");
-                            line = line.Remove(bcIndex, line.IndexOf(';', bcIndex) - bcIndex + 1);
-                        }
-
-
-                        if (!line.StartsWith("</pre>"))
-                        {
-                            line = line.Replace("\t", "&nbsp;&nbsp;&nbsp;&nbsp;").Replace("&apos;", "'") + "<br />";
-                        }
-                        var charList = line.ToCharArray().ToList();
-
-                        StringBuilder sbLine = new StringBuilder();
-                        int index = 0;
-
-                        if (IsShowLineNumber && !line.StartsWith("</pre>"))
-                        {
-                            index = line.IndexOf(span) + span.Length;
-                            string nrLine = line.Substring(0, index);
-
-                            int endTextIndex = nrLine.IndexOf(span);
-                            int startTextIndex = nrLine.LastIndexOf(">", endTextIndex) + 1;
-
-                            nrLine = nrLine.Substring(0, startTextIndex) + nrLine.Substring(startTextIndex, endTextIndex - startTextIndex).Replace(" ", "&nbsp;") + nrLine.Substring(endTextIndex);
-
-                            sbLine.Append(nrLine);
-                        }
-
-                        for (int i = index; i < charList.Count; i++)
-                        {
-                            if (charList[i] == ' ')
-                            {
-                                sbLine.Append("&nbsp;");
-                            }
-                            else
-                            {
-                                sbLine.Append(line.Substring(i));
-                                break;
-                            }
-                        }
-                        sb.AppendLine(sbLine.ToString());
-                    }
-                }
-            }
-            HtmlFragment.CopyToClipboard(sb.ToString());
-            File.Delete(outputFileName);
-        }
-
-        /// <summary>
-        /// Transfer ICSharpCode.TextEditor Control Use FileCode
-        /// </summary>
-
-
-        /// <summary>
-        /// Save User Setting
-        /// </summary>
         private void SaveSetting()
         {
             var settings = new MainFormSettings
