@@ -50,8 +50,12 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="GenerateHighLight.cs" />
+    <Compile Include="HighlightArgumentsBuilder.cs.cs" />
     <Compile Include="HighlightConfigurationProvider.cs" />
+    <Compile Include="HighLightParameter.cs" />
+    <Compile Include="HighlightPorcessRunner.cs" />
     <Compile Include="HighLightSection.cs" />
+    <Compile Include="HighlightTempFileManager.cs" />
     <Compile Include="IGenerateHighLight.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
