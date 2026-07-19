@@ -102,13 +102,19 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BackgroundColorSelector.cs" />
     <Compile Include="CCOMStreamWrapper.cs" />
     <Compile Include="AddIn.cs" />
+    <Compile Include="CodeEditorConfigurator.cs" />
     <Compile Include="CodeEditorLanguageMapper.cs" />
     <Compile Include="HighlightClipboardService.cs" />
     <Compile Include="HighlightGenerationService.cs" />
     <Compile Include="HighLightParameterFactory.cs" />
     <Compile Include="HighlightWorkflowRequest.cs" />
+    <Compile Include="HighlightWorkflowRequestFactory.cs" />
+    <Compile Include="HighlightWorkflowResult.cs" />
+    <Compile Include="HighlightWorkflowService.cs" />
+    <Compile Include="HighlightWorkflowServiceFactory.cs" />
     <Compile Include="HtmlFragment.cs" />
     <Compile Include="HtmlInserter.cs" />
     <Compile Include="LanguageManager.cs" />
@@ -118,8 +124,12 @@
     <Compile Include="MainForm.Designer.cs">
       <DependentUpon>MainForm.cs</DependentUpon>
     </Compile>
+    <Compile Include="MainFormDisplayCoordinator.cs" />
+    <Compile Include="MainFormInitializer.cs" />
     <Compile Include="MainFormSettings.cs" />
+    <Compile Include="MainFormSettingsBinder.cs" />
     <Compile Include="MainFormSettingsProvider.cs" />
+    <Compile Include="NoteHighlightAddin.cs" />
     <Compile Include="OneNoteHelper.cs" />
     <Compile Include="OneNoteService.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -142,6 +152,7 @@
       <DependentUpon>SettingsForm.cs</DependentUpon>
     </Compile>
     <Compile Include="ThemeProvider.cs" />
+    <Compile Include="WindowForegroundService.cs" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="highlight\highlight.exe">
