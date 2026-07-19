@@ -35,6 +35,15 @@ namespace NoteHighlightAddin
         //要HighLight的Code
         private string CodeContent { get { return this.txtCode.Text; } }
 
+        // Added to use the ThemeProvider.cs 
+        private readonly ThemeProvider _themeProvider;
+
+        private readonly HighLightParameterFactory _parameterFactory;
+
+        private readonly CodeEditorLanguageMapper _languageMapper;
+
+        private readonly MainFormSettingsProvider _settingsProvider;
+
         //HighLight的樣式
         private string CodeStyle { get { return this.cbx_style.Text; } }
 
@@ -59,43 +68,54 @@ namespace NoteHighlightAddin
 
         #region -- Constructor --
 
-        public MainForm(string codeType, string fileName, string selectedText, bool quickStyle, bool darkMode)
+        public MainForm(
+         string codeType,
+         string fileName,
+         string selectedText,
+         bool quickStyle,
+         bool darkMode)
         {
             _codeType = codeType;
             _fileName = fileName;
-            InitializeComponent();
-            LoadThemes();
-            txtCode.Text = selectedText;
             _quickStyle = quickStyle;
             _darkMode = darkMode;
 
+            _themeProvider = new ThemeProvider();
+            _parameterFactory = new HighLightParameterFactory();
+            _languageMapper = new CodeEditorLanguageMapper();
+            _settingsProvider = new MainFormSettingsProvider();
+
+            InitializeComponent();
+            LoadThemes();
+
+            txtCode.Text = selectedText;
+
             if (_quickStyle)
             {
-                this.WindowState = FormWindowState.Minimized;
-                this.ShowInTaskbar = false;
+                WindowState = FormWindowState.Minimized;
+                ShowInTaskbar = false;
             }
-
         }
 
         private void LoadThemes()
         {
             try
             {
-                string[] files = Directory.GetFiles(PathManager.ThemesFolder, "*.theme");
+                cbx_style.Items.Clear();
 
-                foreach (var item in files)
+                foreach (string themeName in _themeProvider.GetThemeNames())
                 {
-                    cbx_style.Items.Add(Path.GetFileNameWithoutExtension(item));
+                    cbx_style.Items.Add(themeName);
                 }
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                MessageBox.Show("Exception from MainForm.LoadThemes:" + e.Message);
-                return;
+                MessageBox.Show(
+                    "Exception from MainForm.LoadThemes: " + ex.Message,
+                    "NoteHighlight",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
             }
-
-
-
         }
 
         #endregion
@@ -107,14 +127,23 @@ namespace NoteHighlightAddin
         /// </summary>
         private void CodeForm_Load(object sender, EventArgs e)
         {
-            this.txtCode.Document.HighlightingStrategy = HighlightingStrategyFactory.CreateHighlightingStrategy(CodeTypeTransform(_codeType));
-            this.txtCode.Encoding = Encoding.UTF8;
-            this.cbx_style.SelectedIndex = NoteHighlightForm.Properties.Settings.Default.HighLightStyle;
-            this.btnBackground.BackColor = NoteHighlightForm.Properties.Settings.Default.BackgroundColor;
-            this.cbx_Clipboard.Checked = NoteHighlightForm.Properties.Settings.Default.SaveOnClipboard;
-            this.cbx_lineNumber.Checked = NoteHighlightForm.Properties.Settings.Default.ShowLineNumber;
-            //this.TopMost = true;
-            //this.TopMost = false;
+            txtCode.Document.HighlightingStrategy =
+                HighlightingStrategyFactory.CreateHighlightingStrategy(
+                    _languageMapper.GetHighlightingName(_codeType));
+
+            txtCode.Encoding = Encoding.UTF8;
+
+            MainFormSettings settings = _settingsProvider.Load();
+
+            if (settings.HighLightStyle >= 0 &&
+                settings.HighLightStyle < cbx_style.Items.Count)
+            {
+                cbx_style.SelectedIndex = settings.HighLightStyle;
+            }
+
+            btnBackground.BackColor = settings.BackgroundColor;
+            cbx_Clipboard.Checked = settings.SaveOnClipboard;
+            cbx_lineNumber.Checked = settings.ShowLineNumber;
         }
 
         /// <summary>
@@ -135,22 +164,21 @@ namespace NoteHighlightAddin
                 MessageBox.Show("Please select code Style!");
                 return;
             }
+
             IGenerateHighLight generate = new GenerateHighLight();
+            string outputFileName = string.Empty;
 
-            string outputFileName = String.Empty;
+            MainFormSettings settings = _settingsProvider.Load();
 
-            _parameters = new HighLightParameter()
-            {
-                FileName = _fileName,
-                Content = CodeContent,
-                CodeType = _codeType,
-                HighLightStyle = CodeStyle,
-                ShowLineNumber = IsShowLineNumber,
-                HighlightColor = BackgroundColor,
-                Font = NoteHighlightForm.Properties.Settings.Default.Font,
-                FontSize = NoteHighlightForm.Properties.Settings.Default.FontSize
-
-            };
+            _parameters = _parameterFactory.Create(
+                _fileName,
+                CodeContent,
+                _codeType,
+                CodeStyle,
+                IsShowLineNumber,
+                BackgroundColor,
+                settings.Font,
+                settings.FontSize);
 
             try
             {
@@ -159,18 +187,20 @@ namespace NoteHighlightAddin
             catch (Exception ex)
             {
                 MessageBox.Show(ex.ToString());
-                this.Dispose();
-                this.Close();
+                Dispose();
+                Close();
                 return;
             }
 
-            if (IsClipboard && !String.IsNullOrEmpty(outputFileName))
+            if (IsClipboard && !string.IsNullOrEmpty(outputFileName))
+            {
                 InsertToClipboard(outputFileName);
+            }
 
             SaveSetting();
 
-            this.Dispose();
-            this.Close();
+            Dispose();
+            Close();
         }
 
         #endregion
@@ -248,56 +278,22 @@ namespace NoteHighlightAddin
         /// <summary>
         /// Transfer ICSharpCode.TextEditor Control Use FileCode
         /// </summary>
-        private string CodeTypeTransform(string codeType)
-        {
-            string result = string.Empty;
-            switch (codeType.ToLower())
-            {
-                case "cs":
-                    result = "C#";
-                    break;
-                case "vb":
-                    result = "VBNET";
-                    break;
-                case "js":
-                    result = "JavaScript";
-                    break;
-                case "xml":
-                    result = "XML";
-                    break;
-                case "css":
-                    result = "CSS";
-                    break;
-                case "html":
-                    result = "HTML";
-                    break;
-                case "php":
-                    result = "PHP";
-                    break;
-                case "java":
-                    result = "Java";
-                    break;
-                case "c":
-                    result = "C++.NET";
-                    break;
-                default:
-                    result = "";
-                    break;
-            }
-            return result;
-        }
+
 
         /// <summary>
         /// Save User Setting
         /// </summary>
         private void SaveSetting()
         {
-            var defaultSettings = NoteHighlightForm.Properties.Settings.Default;
-            defaultSettings.ShowLineNumber = this.cbx_lineNumber.Checked;
-            defaultSettings.SaveOnClipboard = this.cbx_Clipboard.Checked;
-            defaultSettings.HighLightStyle = this.cbx_style.SelectedIndex;
-            defaultSettings.BackgroundColor = this.btnBackground.BackColor;
-            defaultSettings.Save();
+            var settings = new MainFormSettings
+            {
+                ShowLineNumber = cbx_lineNumber.Checked,
+                SaveOnClipboard = cbx_Clipboard.Checked,
+                HighLightStyle = cbx_style.SelectedIndex,
+                BackgroundColor = btnBackground.BackColor
+            };
+
+            _settingsProvider.Save(settings);
         }
 
         private void btnBackground_Click(object sender, EventArgs e)

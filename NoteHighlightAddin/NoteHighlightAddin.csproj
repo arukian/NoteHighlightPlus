@@ -104,6 +104,8 @@
   <ItemGroup>
     <Compile Include="CCOMStreamWrapper.cs" />
     <Compile Include="AddIn.cs" />
+    <Compile Include="CodeEditorLanguageMapper.cs" />
+    <Compile Include="HighLightParameterFactory.cs" />
     <Compile Include="HtmlFragment.cs" />
     <Compile Include="HtmlInserter.cs" />
     <Compile Include="LanguageManager.cs" />
@@ -113,6 +115,8 @@
     <Compile Include="MainForm.Designer.cs">
       <DependentUpon>MainForm.cs</DependentUpon>
     </Compile>
+    <Compile Include="MainFormSettings.cs" />
+    <Compile Include="MainFormSettingsProvider.cs" />
     <Compile Include="OneNoteHelper.cs" />
     <Compile Include="OneNoteService.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -134,6 +138,7 @@
     <Compile Include="SettingsForm.Designer.cs">
       <DependentUpon>SettingsForm.cs</DependentUpon>
     </Compile>
+    <Compile Include="ThemeProvider.cs" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="highlight\highlight.exe">
