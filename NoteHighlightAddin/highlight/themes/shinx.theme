@@ -1,0 +1,46 @@
+
+Description="shinx"
+
+-- Theme created by Shinx Powa
+
+Categories = {"light"}
+
+Default        = { Colour="#000000" }
+Canvas         = { Colour="#eeeeee" }
+Number         = { Colour="#A76ED4", Bold=true }
+Escape         = { Colour="#7C5D98", Bold=true }
+String         = { Colour="#6CAA46" }
+StringPreProc  = { Colour="#220055" }
+BlockComment   = { Colour="#6BA67B" }
+LineComment    = { Colour="#545783" }
+PreProcessor   = { Colour="#ac12db", Bold=true }
+LineNum        = { Colour="#303030" }
+Operator       = { Colour="#4f6349", Bold=true }
+Interpolation  = { Colour="#220055" }
+
+Keywords = {
+  { Colour= "#0080c0", Bold=true },
+  { Colour= "#F0D94C", Bold=true },
+  { Colour= "#591b61" },
+  { Colour= "#b1f04c", Bold=true },
+  { Colour="#09ff00", Bold=true },
+  { Colour= "#c37a0d" },
+}
+
+-- new LSP based elements:
+
+SemanticTokenTypes  = {
+  { Type = 'type', Style = Keywords[2] },
+  { Type = 'class', Style =  Keywords[1] },
+  { Type = 'struct', Style =  Keywords[2] },
+  { Type = 'interface', Style = Keywords[1] },
+  { Type = 'parameter', Style = Keywords[6] },
+  { Type = 'variable', Style = Keywords[5] },
+  { Type = 'enumMember', Style = Keywords[5] },
+  { Type = 'function', Style = Keywords[1] },
+  { Type = 'method', Style = Keywords[3] },
+  { Type = 'keyword', Style =  Keywords[3] },
+  { Type = 'number', Style = Number },
+  { Type = 'regexp', Style = String },
+  { Type = 'operator', Style = Operator },
+}
