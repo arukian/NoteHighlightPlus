@@ -9,6 +9,9 @@ namespace NoteHighlightAddin.Highlighting.KeywordGroups.ViewModels
     {
         private readonly ILanguageEditorService languageEditorService;
 
+
+        public event EventHandler ConfigurationChanged;
+
         public LanguageEditorViewModel(
             ILanguageEditorService languageEditorService)
         {
@@ -96,6 +99,8 @@ namespace NoteHighlightAddin.Highlighting.KeywordGroups.ViewModels
 
             HasUnsavedChanges =
                 false;
+
+            OnConfigurationChanged();
         }
 
         public void LoadFromFile(string filePath)
@@ -109,6 +114,8 @@ namespace NoteHighlightAddin.Highlighting.KeywordGroups.ViewModels
 
             HasUnsavedChanges =
                 false;
+
+            OnConfigurationChanged();
         }
 
         public void SelectGroup(
@@ -130,6 +137,8 @@ namespace NoteHighlightAddin.Highlighting.KeywordGroups.ViewModels
 
             HasUnsavedChanges =
                 false;
+
+            OnConfigurationChanged();
         }
 
         public void MarkAsModified()
@@ -141,6 +150,8 @@ namespace NoteHighlightAddin.Highlighting.KeywordGroups.ViewModels
 
             HasUnsavedChanges =
                 true;
+
+            OnConfigurationChanged();
         }
 
         public void Save()
@@ -155,6 +166,8 @@ namespace NoteHighlightAddin.Highlighting.KeywordGroups.ViewModels
                 Configuration);
 
             HasUnsavedChanges = false;
+
+            OnConfigurationChanged();
         }
 
         public void SaveAs(
@@ -171,6 +184,8 @@ namespace NoteHighlightAddin.Highlighting.KeywordGroups.ViewModels
                 filePath);
 
             HasUnsavedChanges = false;
+
+            OnConfigurationChanged();
         }
 
         public bool HasUnsavedChanges
@@ -202,12 +217,11 @@ namespace NoteHighlightAddin.Highlighting.KeywordGroups.ViewModels
                 newGroupId++;
             }
 
+            NormalizeGroupPriorities();
+
             int newPriority =
                 Configuration.Groups
-                    .Where(group => group != null)
-                    .Select(group => group.Priority)
-                    .DefaultIfEmpty(0)
-                    .Max() + 1;
+                    .Count(group => group != null);
 
             var newGroup =
                 new KeywordGroupConfiguration
@@ -227,12 +241,204 @@ namespace NoteHighlightAddin.Highlighting.KeywordGroups.ViewModels
             Configuration.Groups.Add(
                 newGroup);
 
+            NormalizeGroupPriorities();
+
             SelectedGroup =
                 newGroup;
 
             MarkAsModified();
 
             return newGroup;
+        }
+
+        public bool IsGroupIdAvailable(
+            int groupId)
+        {
+            if (Configuration?.Groups == null)
+            {
+                return false;
+            }
+
+            return !Configuration.Groups.Any(
+                group =>
+                    group != null &&
+                    !ReferenceEquals(
+                        group,
+                        SelectedGroup) &&
+                    group.Id == groupId);
+        }
+
+        public bool TryChangeSelectedGroupId(
+            int newGroupId,
+            out string errorMessage)
+        {
+            errorMessage =
+                null;
+
+            if (SelectedGroup == null)
+            {
+                errorMessage =
+                    "No keyword group is selected.";
+
+                return false;
+            }
+
+            if (newGroupId <= 0)
+            {
+                errorMessage =
+                    "The group ID must be greater than zero.";
+
+                return false;
+            }
+
+            if (SelectedGroup.Id == newGroupId)
+            {
+                return true;
+            }
+
+            if (!IsGroupIdAvailable(
+                newGroupId))
+            {
+                errorMessage =
+                    "Another keyword group already uses ID "
+                    + newGroupId
+                    + ".";
+
+                return false;
+            }
+
+            SelectedGroup.Id =
+                newGroupId;
+
+            MarkAsModified();
+
+            return true;
+        }
+
+        public bool CanMoveSelectedGroupUp()
+        {
+            if (SelectedGroup == null)
+            {
+                return false;
+            }
+
+            List<KeywordGroupConfiguration> orderedGroups =
+                GetOrderedGroups().ToList();
+
+            return orderedGroups.IndexOf(
+                SelectedGroup) > 0;
+        }
+
+        public bool CanMoveSelectedGroupDown()
+        {
+            if (SelectedGroup == null)
+            {
+                return false;
+            }
+
+            List<KeywordGroupConfiguration> orderedGroups =
+                GetOrderedGroups().ToList();
+
+            int selectedIndex =
+                orderedGroups.IndexOf(
+                    SelectedGroup);
+
+            return selectedIndex >= 0 &&
+                selectedIndex < orderedGroups.Count - 1;
+        }
+
+        public bool MoveSelectedGroupUp()
+        {
+            return MoveSelectedGroup(
+                -1);
+        }
+
+        public bool MoveSelectedGroupDown()
+        {
+            return MoveSelectedGroup(
+                1);
+        }
+
+        private bool MoveSelectedGroup(
+            int direction)
+        {
+            if (Configuration?.Groups == null ||
+                SelectedGroup == null)
+            {
+                return false;
+            }
+
+            List<KeywordGroupConfiguration> orderedGroups =
+                GetOrderedGroups().ToList();
+
+            int selectedIndex =
+                orderedGroups.IndexOf(
+                    SelectedGroup);
+
+            int destinationIndex =
+                selectedIndex + direction;
+
+            if (selectedIndex < 0 ||
+                destinationIndex < 0 ||
+                destinationIndex >= orderedGroups.Count)
+            {
+                return false;
+            }
+
+            KeywordGroupConfiguration groupToMove =
+                orderedGroups[selectedIndex];
+
+            orderedGroups.RemoveAt(
+                selectedIndex);
+
+            orderedGroups.Insert(
+                destinationIndex,
+                groupToMove);
+
+            ApplyOrderedGroups(
+                orderedGroups);
+
+            MarkAsModified();
+
+            return true;
+        }
+
+        private void NormalizeGroupPriorities()
+        {
+            if (Configuration?.Groups == null)
+            {
+                return;
+            }
+
+            ApplyOrderedGroups(
+                GetOrderedGroups().ToList());
+        }
+
+        private void ApplyOrderedGroups(
+            IList<KeywordGroupConfiguration> orderedGroups)
+        {
+            if (Configuration?.Groups == null ||
+                orderedGroups == null)
+            {
+                return;
+            }
+
+            for (int index = 0;
+                index < orderedGroups.Count;
+                index++)
+            {
+                orderedGroups[index].Priority =
+                    index;
+            }
+
+            Configuration.Groups.Clear();
+
+            foreach (KeywordGroupConfiguration group
+                in orderedGroups)
+            {
+                Configuration.Groups.Add(
+                    group);
+            }
         }
 
         public KeywordGroupConfiguration RemoveSelectedGroup()
@@ -261,6 +467,8 @@ namespace NoteHighlightAddin.Highlighting.KeywordGroups.ViewModels
             Configuration.Groups.Remove(
                 groupToRemove);
 
+            NormalizeGroupPriorities();
+
             KeywordGroupConfiguration nextGroup =
                 null;
 
@@ -284,6 +492,75 @@ namespace NoteHighlightAddin.Highlighting.KeywordGroups.ViewModels
             MarkAsModified();
 
             return nextGroup;
+        }
+
+        public bool AddRegex(
+            string regex)
+        {
+            if (SelectedGroup == null ||
+                string.IsNullOrWhiteSpace(regex))
+            {
+                return false;
+            }
+
+            string normalizedRegex =
+                regex.Trim();
+
+            if (SelectedGroup.Regex == null)
+            {
+                SelectedGroup.Regex =
+                    new List<string>();
+            }
+
+            bool alreadyExists =
+                SelectedGroup.Regex.Any(
+                    existingRegex =>
+                        string.Equals(
+                            existingRegex,
+                            normalizedRegex,
+                            StringComparison.Ordinal));
+
+            if (alreadyExists)
+            {
+                return false;
+            }
+
+            SelectedGroup.Regex.Add(
+                normalizedRegex);
+
+            MarkAsModified();
+
+            return true;
+        }
+
+        public bool RemoveRegex(
+            string regex)
+        {
+            if (SelectedGroup?.Regex == null ||
+                string.IsNullOrWhiteSpace(regex))
+            {
+                return false;
+            }
+
+            string existingRegex =
+                SelectedGroup.Regex.FirstOrDefault(
+                    currentRegex =>
+                        string.Equals(
+                            currentRegex,
+                            regex,
+                            StringComparison.Ordinal));
+
+            if (existingRegex == null)
+            {
+                return false;
+            }
+
+            SelectedGroup.Regex.Remove(
+                existingRegex);
+
+            MarkAsModified();
+
+            return true;
         }
 
         public bool AddWord(
@@ -410,6 +687,14 @@ namespace NoteHighlightAddin.Highlighting.KeywordGroups.ViewModels
 
             return result;
         }
+
+        private void OnConfigurationChanged()
+        {
+            ConfigurationChanged?.Invoke(
+                this,
+                EventArgs.Empty);
+        }
+
 
         public bool MoveWordToSelectedGroup(
     string word,

@@ -134,7 +134,12 @@
     <Compile Include="highlight\KeywordGroups\Writers\ILanguageDefinitionWriter.cs" />
     <Compile Include="HtmlFragment.cs" />
     <Compile Include="HtmlInserter.cs" />
+    <Compile Include="KeywordGroupDetailsController.cs" />
+    <Compile Include="KeywordGroupEditorController.cs" />
+    <Compile Include="KeywordGroupSelectionController.cs" />
+    <Compile Include="KeywordWordEditorController.cs" />
     <Compile Include="LanguageManager.cs" />
+    <Compile Include="LanguageRibbonController.cs" />
     <Compile Include="MainForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -159,6 +164,9 @@
       <AutoGen>True</AutoGen>
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
       <DependentUpon>Settings.settings</DependentUpon>
+    </Compile>
+    <Compile Include="RegexEditorDialog.cs.cs">
+      <SubType>Form</SubType>
     </Compile>
     <Compile Include="Settings.cs" />
     <Compile Include="Properties\Settings.Designer.cs" />
