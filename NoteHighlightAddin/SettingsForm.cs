@@ -3,10 +3,10 @@ using NoteHighlightAddin.Highlighting.KeywordGroups;
 using NoteHighlightAddin.Highlighting.KeywordGroups.Services;
 using NoteHighlightAddin.Highlighting.KeywordGroups.Testing;
 using NoteHighlightAddin.Highlighting.KeywordGroups.ViewModels;
+using NoteHighlightAddin.Highlighting.Preview.Services;
 using System;
 using System.Drawing;
 using System.IO;
-using System.Linq;
 using System.Windows.Forms;
 
 
@@ -72,14 +72,12 @@ namespace NoteHighlightAddin
                     _languageEditor,
                     txtGroupName,
                     txtGroupDescription,
-                    nudGroupPriority,
                     chkGroupVisible,
                     chkGroupBold,
                     chkGroupItalic,
-                    txtGroupColour,
-                    GroupIdEditor,
-                    () => _groupSelectionController.RefreshSelectedListItem(),
-                    UpdateWindowTitle);
+                    cmbGroupColour,
+                    nudGroupId,
+                    () => _groupSelectionController.RefreshSelectedListItem());
 
             _groupSelectionController =
                 new KeywordGroupSelectionController(
@@ -99,7 +97,7 @@ namespace NoteHighlightAddin
                     this,
                     _languageEditor,
                     _groupSelectionController,
-                    GroupIdEditor,
+                    nudGroupId,
                     UpdateWindowTitle,
                     FocusGroupNameEditor);
 
@@ -128,6 +126,34 @@ namespace NoteHighlightAddin
                     cmbAvailableLanguages);
 
             _wordEditorController.UpdateState();
+        }
+
+        private void TestPreview()
+        {
+            try
+            {
+                if (!_languageEditor.HasConfiguration)
+                {
+                    MessageBox.Show(
+                        "Select a language first.",
+                        "Preview",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Information);
+
+                    return;
+                }
+
+                PreviewHtmlServiceTester.GenerateAndOpenPreview(
+                    _languageEditor.Configuration);
+            }
+            catch (Exception exception)
+            {
+                MessageBox.Show(
+                    exception.ToString(),
+                    "Preview error",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+            }
         }
 
         private void InitializeGroupManagementControls()
@@ -201,43 +227,6 @@ namespace NoteHighlightAddin
                         lbxKeywordGroups.Anchor,
                     Enabled = false
                 };
-
-            Label groupIdLabel =
-                new Label
-                {
-                    Name = "lblGroupId",
-                    Text = "Group ID:",
-                    AutoSize = true,
-                    Left = txtGroupName.Left,
-                    Top = txtGroupName.Bottom + 8
-                };
-
-            NumericUpDown groupIdEditor =
-                new NumericUpDown
-                {
-                    Name = "nudGroupId",
-                    Minimum = 1,
-                    Maximum = 9999,
-                    Width = txtGroupName.Width,
-                    Left = txtGroupName.Left,
-                    Top = groupIdLabel.Bottom + 3,
-                    Enabled = false
-                };
-
-            groupIdEditor.ValueChanged +=
-                nudGroupId_ValueChanged;
-
-            Control detailsParent =
-                txtGroupName.Parent;
-
-            detailsParent.Controls.Add(
-                groupIdLabel);
-
-            detailsParent.Controls.Add(
-                groupIdEditor);
-
-            groupIdLabel.BringToFront();
-            groupIdEditor.BringToFront();
 
             // Place the word input below the group-management buttons.
             // Add Group previously occupied the original position of
@@ -322,13 +311,6 @@ namespace NoteHighlightAddin
             _groupEditorController.AddGroup();
         }
 
-        private NumericUpDown GroupIdEditor =>
-            Controls.Find(
-                "nudGroupId",
-                true)
-                .OfType<NumericUpDown>()
-                .FirstOrDefault();
-
         private void FocusGroupNameEditor()
         {
             txtGroupName.Focus();
@@ -379,7 +361,7 @@ namespace NoteHighlightAddin
             object sender,
             EventArgs e)
         {
-            TestPythonLanguageRoundTrip();
+            TestPreview();
         }
 
         /// <summary>
@@ -615,11 +597,6 @@ namespace NoteHighlightAddin
             _groupSelectionController.RefreshSelection();
         }
 
-        private void textBox1_TextChanged(object sender, EventArgs e)
-        {
-
-        }
-
         private void LanguageEditor_ConfigurationChanged(
             object sender,
             EventArgs e)
@@ -678,7 +655,7 @@ namespace NoteHighlightAddin
             _groupDetailsController.ApplyChanges();
         }
 
-        private void txtGroupColour_TextChanged(
+        private void cmbGroupColour_TextChanged(
             object sender,
             EventArgs e)
         {

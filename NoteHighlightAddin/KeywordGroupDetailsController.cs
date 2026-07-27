@@ -14,14 +14,12 @@ namespace NoteHighlightAddin
         private readonly LanguageEditorViewModel _languageEditor;
         private readonly TextBox _nameEditor;
         private readonly TextBox _descriptionEditor;
-        private readonly NumericUpDown _priorityEditor;
         private readonly CheckBox _visibleEditor;
         private readonly CheckBox _boldEditor;
         private readonly CheckBox _italicEditor;
-        private readonly TextBox _colourEditor;
+        private readonly ComboBox _colourEditor;
         private readonly NumericUpDown _groupIdEditor;
         private readonly Action _refreshSelectedListItem;
-        private readonly Action _updateWindowTitle;
 
         private bool _isLoading;
 
@@ -34,14 +32,12 @@ namespace NoteHighlightAddin
             LanguageEditorViewModel languageEditor,
             TextBox nameEditor,
             TextBox descriptionEditor,
-            NumericUpDown priorityEditor,
             CheckBox visibleEditor,
             CheckBox boldEditor,
             CheckBox italicEditor,
-            TextBox colourEditor,
+            ComboBox colourEditor,
             NumericUpDown groupIdEditor,
-            Action refreshSelectedListItem,
-            Action updateWindowTitle)
+            Action refreshSelectedListItem)
         {
             _languageEditor =
                 languageEditor
@@ -57,11 +53,6 @@ namespace NoteHighlightAddin
                 descriptionEditor
                 ?? throw new ArgumentNullException(
                     nameof(descriptionEditor));
-
-            _priorityEditor =
-                priorityEditor
-                ?? throw new ArgumentNullException(
-                    nameof(priorityEditor));
 
             _visibleEditor =
                 visibleEditor
@@ -92,11 +83,6 @@ namespace NoteHighlightAddin
                 refreshSelectedListItem
                 ?? throw new ArgumentNullException(
                     nameof(refreshSelectedListItem));
-
-            _updateWindowTitle =
-                updateWindowTitle
-                ?? throw new ArgumentNullException(
-                    nameof(updateWindowTitle));
         }
 
 
@@ -134,10 +120,6 @@ namespace NoteHighlightAddin
                 _descriptionEditor.Text =
                     group.Description
                     ?? string.Empty;
-
-                SetNumericValue(
-                    _priorityEditor,
-                    group.Priority);
 
                 _visibleEditor.Checked =
                     group.Visible;
@@ -198,7 +180,6 @@ namespace NoteHighlightAddin
             _languageEditor.MarkAsModified();
 
             _refreshSelectedListItem();
-            _updateWindowTitle();
         }
 
 
@@ -210,10 +191,6 @@ namespace NoteHighlightAddin
 
             _descriptionEditor.Enabled =
                 enabled;
-
-            // Priority is normalized automatically through group ordering.
-            _priorityEditor.Enabled =
-                false;
 
             _visibleEditor.Enabled =
                 enabled;
@@ -237,11 +214,6 @@ namespace NoteHighlightAddin
             _nameEditor.Clear();
             _descriptionEditor.Clear();
 
-            _priorityEditor.Value =
-                GetClampedValue(
-                    _priorityEditor,
-                    0);
-
             _visibleEditor.Checked =
                 false;
 
@@ -251,7 +223,11 @@ namespace NoteHighlightAddin
             _italicEditor.Checked =
                 false;
 
-            _colourEditor.Clear();
+            _colourEditor.SelectedIndex =
+                -1;
+
+            _colourEditor.Text =
+                string.Empty;
 
             _groupIdEditor.Value =
                 _groupIdEditor.Minimum;

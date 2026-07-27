@@ -123,9 +123,15 @@
     <Compile Include="highlight\KeywordGroups\Readers\HighlightLanguageDefinition.cs" />
     <Compile Include="highlight\KeywordGroups\Readers\ILanguageDefinitionReader.cs" />
     <Compile Include="highlight\KeywordGroups\Readers\HighlightLanguageDefinitionReader.cs" />
+    <Compile Include="highlight\KeywordGroups\Services\HighlightPreviewLanguageService.cs" />
+    <Compile Include="highlight\KeywordGroups\Services\IHighlightPreviewLanguageService.cs" />
     <Compile Include="highlight\KeywordGroups\Services\ILanguageEditorService.cs" />
+    <Compile Include="highlight\KeywordGroups\Services\IPreviewHtmlService.cs" />
     <Compile Include="highlight\KeywordGroups\Services\LanguageEditorService.cs" />
+    <Compile Include="highlight\KeywordGroups\Services\PreviewHtmlService.cs" />
+    <Compile Include="highlight\KeywordGroups\Services\PreviewHtmlServiceTester.cs" />
     <Compile Include="highlight\KeywordGroups\Testing\HighlightLanguageRoundTripTester.cs" />
+    <Compile Include="highlight\KeywordGroups\Testing\HighlightPreviewLanguageServiceTester.cs" />
     <Compile Include="highlight\KeywordGroups\Testing\RoundTripTestResult.cs" />
     <Compile Include="highlight\KeywordGroups\ViewModels\KeywordGroupListItem.cs" />
     <Compile Include="highlight\KeywordGroups\ViewModels\LanguageEditorViewModel.cs" />

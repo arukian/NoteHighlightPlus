@@ -53,7 +53,7 @@
     <Compile Include="HighlightArgumentsBuilder.cs.cs" />
     <Compile Include="HighlightConfigurationProvider.cs" />
     <Compile Include="HighLightParameter.cs" />
-    <Compile Include="HighlightPorcessRunner.cs" />
+    <Compile Include="HighlightProcessRunner.cs" />
     <Compile Include="HighLightSection.cs" />
     <Compile Include="HighlightTempFileManager.cs" />
     <Compile Include="IGenerateHighLight.cs" />
