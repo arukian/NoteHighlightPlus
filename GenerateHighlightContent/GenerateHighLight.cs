@@ -52,7 +52,7 @@ namespace GenerateHighlightContent
         }
 
         public string GenerateHighLightCode(
-            HighLightParameter parameter)
+    HighLightParameter parameter)
         {
             if (parameter == null)
             {
@@ -64,20 +64,54 @@ namespace GenerateHighlightContent
                     parameter.FileName,
                     parameter.Content);
 
+            string arguments = null;
+
             try
             {
-                string arguments = _argumentsBuilder.Build(
-                    _section,
-                    parameter,
-                    files.InputFileName,
-                    files.OutputFileName);
+                arguments =
+                    _argumentsBuilder.Build(
+                        _section,
+                        parameter,
+                        files.InputFileName,
+                        files.OutputFileName);
 
                 _processRunner.Run(
                     PathManager.HighlightFolder,
                     _section.ProcessName,
                     arguments);
 
-                _tempFileManager.EnsureOutputExists(files);
+                if (!System.IO.File.Exists(
+                    files.OutputFileName))
+                {
+                    throw new System.IO.FileNotFoundException(
+                        "Highlight finished without creating the output HTML."
+                        + Environment.NewLine
+                        + Environment.NewLine
+                        + "Language:"
+                        + Environment.NewLine
+                        + parameter.CodeType
+                        + Environment.NewLine
+                        + Environment.NewLine
+                        + "Theme:"
+                        + Environment.NewLine
+                        + parameter.HighLightStyle
+                        + Environment.NewLine
+                        + Environment.NewLine
+                        + "Working directory:"
+                        + Environment.NewLine
+                        + PathManager.HighlightFolder
+                        + Environment.NewLine
+                        + Environment.NewLine
+                        + "Arguments:"
+                        + Environment.NewLine
+                        + arguments
+                        + Environment.NewLine
+                        + Environment.NewLine
+                        + "Expected output:"
+                        + Environment.NewLine
+                        + files.OutputFileName,
+                        files.OutputFileName);
+                }
 
                 return files.OutputFileName;
             }

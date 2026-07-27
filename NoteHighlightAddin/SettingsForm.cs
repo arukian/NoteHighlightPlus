@@ -130,6 +130,8 @@ namespace NoteHighlightAddin
 
         private void TestPreview()
         {
+            // adding temp solution for testing to identify where the DLL are coming from
+            MessageBox.Show(typeof(GenerateHighlightContent.GenerateHighLight).Assembly .Location, "GenerateHighlightContent loaded from");
             try
             {
                 if (!_languageEditor.HasConfiguration)

@@ -128,6 +128,7 @@ namespace GenerateHighlightContent
 
                 process.BeginOutputReadLine();
                 process.BeginErrorReadLine();
+                // Garantiza que los eventos asíncronos terminen de procesarse.
                 process.WaitForExit();
 
                 string output =
@@ -136,7 +137,7 @@ namespace GenerateHighlightContent
                 string error =
                     standardError.ToString().Trim();
 
-                if (process.ExitCode == 0)
+                if (process.ExitCode == 0 && string.IsNullOrWhiteSpace(error))
                 {
                     return;
                 }
