@@ -1187,6 +1187,7 @@
     <Content Include="highlight\themes\shinx.theme">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <None Include="App1.config" />
     <None Include="packages.config" />
     <Content Include="ribbon.xml">
       <SubType>Designer</SubType>
@@ -1330,6 +1331,7 @@
   </Target>
   -->
   <PropertyGroup>
-    <PostBuildEvent>xcopy "$(TargetDir)*" "C:\Program Files\CodingRoad\NoteHighlight2016\" /E /Y /I</PostBuildEvent>
+    <PostBuildEvent>
+    </PostBuildEvent>
   </PropertyGroup>
 </Project>
