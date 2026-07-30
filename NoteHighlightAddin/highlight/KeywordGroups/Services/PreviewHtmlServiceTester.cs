@@ -15,6 +15,8 @@ namespace NoteHighlightAddin.Highlighting.Preview.Services
     [ComVisible(false)]
     internal static class PreviewHtmlServiceTester
     {
+        private static IPreviewHtmlService _previewService;
+
         public static string GeneratePreview(
             EditableLanguageConfiguration configuration)
         {
@@ -24,23 +26,21 @@ namespace NoteHighlightAddin.Highlighting.Preview.Services
                     nameof(configuration));
             }
 
+            EnsurePreviewService();
+
             HighLightParameter parameter =
                 CreatePreviewParameter(
                     configuration);
 
-            using (IPreviewHtmlService previewService =
-                new PreviewHtmlService())
-            {
-                string htmlPath =
-                    previewService.GeneratePreviewHtml(
-                        configuration,
-                        parameter);
+            string htmlPath =
+                _previewService.GeneratePreviewHtml(
+                    configuration,
+                    parameter);
 
-                ValidateHtmlFile(
-                    htmlPath);
+            ValidateHtmlFile(
+                htmlPath);
 
-                return htmlPath;
-            }
+            return htmlPath;
         }
 
         public static void GenerateAndOpenPreview(
@@ -58,6 +58,28 @@ namespace NoteHighlightAddin.Highlighting.Preview.Services
                 });
         }
 
+        public static void Cleanup()
+        {
+            if (_previewService == null)
+            {
+                return;
+            }
+
+            _previewService.Dispose();
+            _previewService = null;
+        }
+
+        private static void EnsurePreviewService()
+        {
+            if (_previewService != null)
+            {
+                return;
+            }
+
+            _previewService =
+                new PreviewHtmlService();
+        }
+
         private static HighLightParameter CreatePreviewParameter(
             EditableLanguageConfiguration configuration)
         {
@@ -73,7 +95,7 @@ namespace NoteHighlightAddin.Highlighting.Preview.Services
                     configuration.Language,
 
                 HighLightStyle =
-                    "Default",
+                    "shinx",
 
                 ShowLineNumber =
                     true,

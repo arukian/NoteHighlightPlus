@@ -8,6 +8,9 @@ using System;
 using System.Drawing;
 using System.IO;
 using System.Windows.Forms;
+using Microsoft.Web.WebView2.Core;
+using Microsoft.Web.WebView2.WinForms;
+using System.Threading.Tasks;
 
 
 namespace NoteHighlightAddin
@@ -28,10 +31,15 @@ namespace NoteHighlightAddin
         private KeywordGroupEditorController _groupEditorController;
         private KeywordGroupDetailsController _groupDetailsController;
         private KeywordWordEditorController _wordEditorController;
+        private WebView2 _previewWebView; // WebView2 control for preview
 
         public SettingsForm()
         {
             InitializeComponent();
+
+            // Connect the form events explicitly. This avoids depending on the WinForms designer event wiring.
+            Shown += SettingsForm_Shown;
+            FormClosed += SettingsForm_FormClosed;
 
             _languageEditor =
                 new LanguageEditorViewModel(
@@ -128,28 +136,110 @@ namespace NoteHighlightAddin
             _wordEditorController.UpdateState();
         }
 
-        private void TestPreview()
+        // Initialize the WebView2 control for preview asynchronously
+        private async Task InitializePreviewWebViewAsync()
         {
-            // adding temp solution for testing to identify where the DLL are coming from
-            MessageBox.Show(typeof(GenerateHighlightContent.GenerateHighLight).Assembly .Location, "GenerateHighlightContent loaded from");
+            if (_previewWebView != null)
+            {
+                return;
+            }
+
+            _previewWebView =
+                new WebView2
+                {
+                    Dock = DockStyle.Fill,
+                    Name = "previewWebView"
+                };
+
+            pnlPreview.Controls.Add(
+                _previewWebView);
+
+            lblPreviewStatus.Text =
+                "Initializing preview...";
+
+            try
+            {
+                await _previewWebView.EnsureCoreWebView2Async();
+
+                _previewWebView.CoreWebView2.NavigationCompleted += PreviewWebView_NavigationCompleted;
+
+                lblPreviewStatus.Text =
+                    "Preview ready.";
+            }
+            catch (Exception exception)
+            {
+                lblPreviewStatus.Text =
+                    "WebView2 initialization failed.";
+
+                MessageBox.Show(
+                    exception.ToString(),
+                    "WebView2 error",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+            }
+        }
+
+        // adding form closed event handler to cleanup the preview service
+
+        private void SettingsForm_FormClosed(object sender, FormClosedEventArgs e)
+        {
+            PreviewHtmlServiceTester.Cleanup();
+        }
+
+        // adding preview navigation completed event handler
+
+        private void PreviewWebView_NavigationCompleted(object sender, CoreWebView2NavigationCompletedEventArgs e)
+        {
+            lblPreviewStatus.Text =
+                e.IsSuccess
+                    ? "Preview loaded successfully."
+                    : "Preview could not be loaded.";
+        }
+
+        private async void TestPreview()
+        {
             try
             {
                 if (!_languageEditor.HasConfiguration)
                 {
-                    MessageBox.Show(
-                        "Select a language first.",
-                        "Preview",
-                        MessageBoxButtons.OK,
-                        MessageBoxIcon.Information);
+                    lblPreviewStatus.Text =
+                        "Select a language first.";
 
                     return;
                 }
 
-                PreviewHtmlServiceTester.GenerateAndOpenPreview(
-                    _languageEditor.Configuration);
+                if (_previewWebView == null ||
+                    _previewWebView.CoreWebView2 == null)
+                {
+                    lblPreviewStatus.Text =
+                        "Preview is not ready.";
+
+                    return;
+                }
+
+                lblPreviewStatus.Text =
+                    "Generating preview...";
+
+                string htmlPath =
+                    PreviewHtmlServiceTester.GeneratePreview(
+                        _languageEditor.Configuration);
+
+                Uri htmlUri =
+                    new Uri(htmlPath);
+
+                _previewWebView.CoreWebView2.Navigate(
+                    htmlUri.AbsoluteUri);
+
+                lblPreviewStatus.Text =
+                    "Loading preview...";
+
+                await Task.CompletedTask;
             }
             catch (Exception exception)
             {
+                lblPreviewStatus.Text =
+                    "Preview generation failed.";
+
                 MessageBox.Show(
                     exception.ToString(),
                     "Preview error",
@@ -555,19 +645,14 @@ namespace NoteHighlightAddin
         }
 
 
-        private void SettingsForm_Shown(
-            object sender,
-            EventArgs e)
+        private async void SettingsForm_Shown(object sender, EventArgs e)
         {
-            // Required for SetForegroundWindow to work consistently.
-            WindowState =
-                FormWindowState.Minimized;
+            WindowState = FormWindowState.Minimized;
+            WindowState = FormWindowState.Normal;
 
-            WindowState =
-                FormWindowState.Normal;
+            SetForegroundWindow(Handle);
 
-            SetForegroundWindow(
-                Handle);
+            await InitializePreviewWebViewAsync();
 
             _languageRibbonController.RefreshLanguageList();
         }
@@ -692,6 +777,16 @@ namespace NoteHighlightAddin
             _wordEditorController.HandleWordInputKeyDown(
                 e);
         }
+
+
+        //adding button
+        private void btnRefreshPreview_Click(object sender, EventArgs e)
+        {
+            TestPreview();
+        }
+
+
+
 
     }
 }

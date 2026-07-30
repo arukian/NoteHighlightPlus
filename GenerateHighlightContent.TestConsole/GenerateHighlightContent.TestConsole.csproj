@@ -35,6 +35,8 @@
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -57,6 +59,10 @@
     <ProjectReference Include="..\Infrastructure.Core\Infrastructure.Core.csproj">
       <Project>{63345e8a-eed1-480c-ab98-a35fd71dec97}</Project>
       <Name>Infrastructure.Core</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\NoteHighlightAddin\NoteHighlightAddin.csproj">
+      <Project>{d874e185-08fe-48c5-bade-0fe84060c978}</Project>
+      <Name>NoteHighlightAddin</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

@@ -24,8 +24,10 @@ namespace GenerateHighlightContent
 
         public GenerateHighLight()
             : this(
-                HighlightConfigurationProvider.Load(
-                    Assembly.GetCallingAssembly().Location),
+                HighlightConfigurationProvider.LoadFirstAvailable(
+                    Assembly.GetEntryAssembly()?.Location,
+                    Assembly.GetCallingAssembly().Location,
+                    typeof(GenerateHighLight).Assembly.Location),
                 new HighlightProcessRunner(),
                 new HighlightArgumentsBuilder(),
                 new HighlightTempFileManager())

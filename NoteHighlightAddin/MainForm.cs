@@ -1,4 +1,5 @@
 ﻿using GenerateHighlightContent;
+using NoteHighlightAddin.Highlighting.Preview.Services;
 using System;
 using System.Drawing;
 using System.Windows.Forms;
@@ -38,7 +39,12 @@ namespace NoteHighlightAddin
         
         public HighLightParameter Parameters { get; private set; }
 
-       #endregion
+        private void SettingsForm_FormClosed(object sender, FormClosedEventArgs e)
+        {
+            PreviewHtmlServiceTester.Cleanup();
+        }
+
+        #endregion
 
         #region -- Constructor --
 
@@ -63,6 +69,7 @@ namespace NoteHighlightAddin
             InitializeComponent();
 
             txtCode.Text = selectedText;
+            FormClosed += SettingsForm_FormClosed;
 
             if (_quickStyle)
             {

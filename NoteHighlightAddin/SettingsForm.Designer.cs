@@ -31,6 +31,98 @@ namespace NoteHighlightAddin
         /// </summary>
         private void InitializeComponent()
         {
+            this.grpPreview = new System.Windows.Forms.GroupBox();
+            this.pnlPreview = new System.Windows.Forms.Panel();
+            this.lblPreviewStatus = new System.Windows.Forms.Label();
+            this.btnRefreshPreview = new System.Windows.Forms.Button();
+            this.grpPreview.SuspendLayout();
+            this.Controls.Add(this.grpPreview);
+
+            // 
+            // grpPreview
+            // 
+            this.grpPreview.Controls.Add(this.pnlPreview);
+            this.grpPreview.Controls.Add(this.lblPreviewStatus);
+            this.grpPreview.Controls.Add(this.btnRefreshPreview);
+            this.grpPreview.Location = new System.Drawing.Point(24, 300);
+            this.grpPreview.Name = "grpPreview";
+            this.grpPreview.Size = new System.Drawing.Size(711, 260);
+            this.grpPreview.TabIndex = 30;
+            this.grpPreview.TabStop = false;
+            this.grpPreview.Text = "Preview";
+
+            // 
+            // pnlPreview
+            // 
+            this.pnlPreview.Anchor =
+                ((System.Windows.Forms.AnchorStyles)
+                ((((System.Windows.Forms.AnchorStyles.Top
+                | System.Windows.Forms.AnchorStyles.Bottom)
+                | System.Windows.Forms.AnchorStyles.Left)
+                | System.Windows.Forms.AnchorStyles.Right)));
+
+            this.pnlPreview.BorderStyle =
+                System.Windows.Forms.BorderStyle.FixedSingle;
+
+            this.pnlPreview.Location =
+                new System.Drawing.Point(12, 48);
+
+            this.pnlPreview.Name =
+                "pnlPreview";
+
+            this.pnlPreview.Size =
+                new System.Drawing.Size(687, 200);
+
+            this.pnlPreview.TabIndex =
+                0;
+
+            // 
+            // lblPreviewStatus
+            // 
+            this.lblPreviewStatus.AutoSize = true;
+            this.lblPreviewStatus.Location =
+                new System.Drawing.Point(12, 25);
+            this.lblPreviewStatus.Name =
+                "lblPreviewStatus";
+            this.lblPreviewStatus.Size =
+                new System.Drawing.Size(96, 13);
+            this.lblPreviewStatus.TabIndex =
+                1;
+            this.lblPreviewStatus.Text =
+                "Preview not loaded";
+
+            // 
+            // btnRefreshPreview
+            // 
+            this.btnRefreshPreview.Anchor =
+                ((System.Windows.Forms.AnchorStyles)
+                (System.Windows.Forms.AnchorStyles.Top
+                | System.Windows.Forms.AnchorStyles.Right));
+
+            this.btnRefreshPreview.Location =
+                new System.Drawing.Point(580, 19);
+
+            this.btnRefreshPreview.Name =
+                "btnRefreshPreview";
+
+            this.btnRefreshPreview.Size =
+                new System.Drawing.Size(119, 23);
+
+            this.btnRefreshPreview.TabIndex =
+                2;
+
+            this.btnRefreshPreview.Text =
+                "Refresh Preview";
+
+            this.btnRefreshPreview.UseVisualStyleBackColor =
+                true;
+
+            this.btnRefreshPreview.Click += new System.EventHandler( this.btnRefreshPreview_Click);
+
+            this.ClientSize = new System.Drawing.Size(760, 585);
+
+            this.MinimumSize = new System.Drawing.Size(776, 624);
+
             this.fontDialog1 = new System.Windows.Forms.FontDialog();
             this.btnFont = new System.Windows.Forms.Button();
             this.cbShowTableBorder = new System.Windows.Forms.CheckBox();
@@ -348,6 +440,8 @@ namespace NoteHighlightAddin
             this.Text = "SettingsForm";
             this.Shown += new System.EventHandler(this.SettingsForm_Shown);
             ((System.ComponentModel.ISupportInitialize)(this.nudGroupId)).EndInit();
+            this.grpPreview.ResumeLayout(false);
+            this.grpPreview.PerformLayout();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -381,5 +475,9 @@ namespace NoteHighlightAddin
         private Label lblGroupId;
         private Label lblGroupColour;
         private ComboBox cmbGroupColour;
+        private System.Windows.Forms.GroupBox grpPreview;
+        private System.Windows.Forms.Panel pnlPreview;
+        private System.Windows.Forms.Label lblPreviewStatus;
+        private System.Windows.Forms.Button btnRefreshPreview;
     }
 }
