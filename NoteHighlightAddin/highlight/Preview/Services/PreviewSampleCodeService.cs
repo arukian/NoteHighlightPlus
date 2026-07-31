@@ -1,21 +1,30 @@
 ﻿using NoteHighlightAddin.Highlighting.KeywordGroups;
+using NoteHighlightAddin.Highlighting.Preview.Services.Builders;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text;
 
 namespace NoteHighlightAddin.Highlighting.Preview.Services
 {
-    /// <summary>
-    /// Generates sample source code using the currently selected
-    /// language and keyword group.
-    /// </summary>
-    [ComVisible(false)]
-    public sealed class PreviewSampleCodeService
+    internal sealed class PreviewSampleCodeService
         : IPreviewSampleCodeService
     {
-        private const int MaximumDisplayedWords = 20;
+        private const int MaximumPreviewWords =
+            20;
+
+        private readonly IReadOnlyList<IPreviewSampleBuilder>
+            _builders;
+
+        public PreviewSampleCodeService()
+        {
+            _builders =
+                new List<IPreviewSampleBuilder>
+                {
+                    new PythonPreviewSampleBuilder(),
+                    new JavaScriptPreviewSampleBuilder(),
+                    new GenericPreviewSampleBuilder()
+                };
+        }
 
         public string Generate(
             EditableLanguageConfiguration configuration,
@@ -35,190 +44,22 @@ namespace NoteHighlightAddin.Highlighting.Preview.Services
                 GetPreviewWords(
                     selectedGroup);
 
-            if (language == "python")
+            IPreviewSampleBuilder builder =
+                _builders.FirstOrDefault(
+                    item =>
+                        item.CanHandle(
+                            language));
+
+            if (builder == null)
             {
-                return GeneratePythonSample(
-                    selectedGroup,
-                    words);
+                throw new InvalidOperationException(
+                    "No preview sample builder is available.");
             }
 
-            return GenerateGenericSample(
+            return builder.Generate(
                 configuration,
                 selectedGroup,
                 words);
-        }
-
-        private static string GeneratePythonSample(
-            KeywordGroupConfiguration selectedGroup,
-            IReadOnlyList<string> words)
-        {
-            var builder =
-                new StringBuilder();
-
-            builder.AppendLine(
-                "# NoteHighlight+ contextual preview");
-
-            AppendPythonGroupInformation(
-                builder,
-                selectedGroup);
-
-            builder.AppendLine();
-            builder.AppendLine(
-                "class PreviewExample:");
-
-            builder.AppendLine(
-                "    def __init__(self, value):");
-
-            builder.AppendLine(
-                "        self.value = value");
-
-            builder.AppendLine();
-
-            builder.AppendLine(
-                "    def process(self, items):");
-
-            builder.AppendLine(
-                "        for item in items:");
-
-            builder.AppendLine(
-                "            if item is not None:");
-
-            builder.AppendLine(
-                "                print(item)");
-
-            builder.AppendLine();
-
-            builder.AppendLine(
-                "        return self.value");
-
-            builder.AppendLine();
-
-            builder.AppendLine(
-                "example = PreviewExample(True)");
-
-            builder.AppendLine(
-                "result = example.process([1, 2, 3])");
-
-            AppendPythonSelectedWords(
-                builder,
-                words);
-
-            return builder.ToString();
-        }
-
-        private static void AppendPythonGroupInformation(
-            StringBuilder builder,
-            KeywordGroupConfiguration selectedGroup)
-        {
-            if (selectedGroup == null)
-            {
-                builder.AppendLine(
-                    "# Select a keyword group to preview its words.");
-
-                return;
-            }
-
-            builder.AppendLine(
-                "# Selected group: "
-                + CreateSingleLineText(
-                    selectedGroup.DisplayName));
-        }
-
-        private static void AppendPythonSelectedWords(
-            StringBuilder builder,
-            IReadOnlyList<string> words)
-        {
-            builder.AppendLine();
-            builder.AppendLine(
-                "# Words from the selected group:");
-
-            if (words.Count == 0)
-            {
-                builder.AppendLine(
-                    "# No literal words are defined in this group.");
-
-                return;
-            }
-
-            foreach (string word in words)
-            {
-                builder.AppendLine(
-                    "# " + CreateSingleLineText(word));
-            }
-        }
-
-        private static string GenerateGenericSample(
-            EditableLanguageConfiguration configuration,
-            KeywordGroupConfiguration selectedGroup,
-            IReadOnlyList<string> words)
-        {
-            var builder =
-                new StringBuilder();
-
-            builder.AppendLine(
-                "NoteHighlight+ contextual preview");
-
-            builder.AppendLine(
-                "Language: "
-                + CreateSingleLineText(
-                    configuration.Language));
-
-            if (selectedGroup != null)
-            {
-                builder.AppendLine(
-                    "Selected group: "
-                    + CreateSingleLineText(
-                        selectedGroup.DisplayName));
-            }
-
-            builder.AppendLine();
-            builder.AppendLine(
-                "Words from the selected group:");
-
-            if (words.Count == 0)
-            {
-                builder.AppendLine(
-                    "No literal words are defined in this group.");
-            }
-            else
-            {
-                foreach (string word in words)
-                {
-                    builder.AppendLine(
-                        CreateSingleLineText(word));
-                }
-            }
-
-            AppendRegexInformation(
-                builder,
-                selectedGroup);
-
-            return builder.ToString();
-        }
-
-        private static void AppendRegexInformation(
-            StringBuilder builder,
-            KeywordGroupConfiguration selectedGroup)
-        {
-            if (selectedGroup == null ||
-                selectedGroup.Regex == null ||
-                selectedGroup.Regex.Count == 0)
-            {
-                return;
-            }
-
-            builder.AppendLine();
-            builder.AppendLine(
-                "Regular expressions:");
-
-            foreach (string regex in selectedGroup.Regex
-                .Where(value =>
-                    !string.IsNullOrWhiteSpace(value))
-                .Take(MaximumDisplayedWords))
-            {
-                builder.AppendLine(
-                    CreateSingleLineText(regex));
-            }
         }
 
         private static IReadOnlyList<string> GetPreviewWords(
@@ -233,10 +74,12 @@ namespace NoteHighlightAddin.Highlighting.Preview.Services
             return selectedGroup.Words
                 .Where(word =>
                     !string.IsNullOrWhiteSpace(word))
+                .Select(word =>
+                    word.Trim())
                 .Distinct(
                     StringComparer.Ordinal)
                 .Take(
-                    MaximumDisplayedWords)
+                    MaximumPreviewWords)
                 .ToList();
         }
 
@@ -250,39 +93,26 @@ namespace NoteHighlightAddin.Highlighting.Preview.Services
             }
 
             string normalized =
-                language.Trim()
+                language
+                    .Trim()
                     .ToLowerInvariant();
 
-            if (normalized.EndsWith(
-                ".lang",
-                StringComparison.Ordinal))
+            if (normalized == "py")
             {
-                normalized =
-                    normalized.Substring(
-                        0,
-                        normalized.Length - 5);
+                return "python";
+            }
+
+            if (normalized == "python3")
+            {
+                return "python";
+            }
+
+            if (normalized == "js")
+            {
+                return "javascript";
             }
 
             return normalized;
-        }
-
-        private static string CreateSingleLineText(
-            string value)
-        {
-            if (string.IsNullOrWhiteSpace(
-                value))
-            {
-                return string.Empty;
-            }
-
-            return value
-                .Replace(
-                    "\r",
-                    " ")
-                .Replace(
-                    "\n",
-                    " ")
-                .Trim();
         }
     }
 }

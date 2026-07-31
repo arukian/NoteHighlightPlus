@@ -149,6 +149,15 @@
     <Compile Include="highlight\KeywordGroups\ViewModels\WordLocationResult.cs" />
     <Compile Include="highlight\KeywordGroups\Writers\HighlightLanguageDefinitionWriter.cs" />
     <Compile Include="highlight\KeywordGroups\Writers\ILanguageDefinitionWriter.cs" />
+    <Compile Include="highlight\Preview\Python\PythonPreviewDependencyCatalog.cs" />
+    <Compile Include="highlight\Preview\Python\PythonPreviewExample.cs" />
+    <Compile Include="highlight\Preview\Python\PythonPreviewExampleCatalog.cs" />
+    <Compile Include="highlight\Preview\Services\Builders\GenericPreviewSampleBuilder.cs" />
+    <Compile Include="highlight\Preview\Services\Builders\JavaScriptPreviewSampleBuilder.cs" />
+    <Compile Include="highlight\Preview\Services\Builders\PythonPreviewSampleBuilder.cs" />
+    <Compile Include="highlight\Preview\Services\Builders\using System.Collections.Generic.cs" />
+    <Compile Include="highlight\Preview\Services\IPreviewSampleCodeService.cs" />
+    <Compile Include="highlight\Preview\Services\PreviewSampleCodeService.cs" />
     <Compile Include="HtmlFragment.cs" />
     <Compile Include="HtmlInserter.cs" />
     <Compile Include="KeywordGroupDetailsController.cs" />
