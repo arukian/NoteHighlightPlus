@@ -11,6 +11,7 @@ using System.Windows.Forms;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.WinForms;
 using System.Threading.Tasks;
+using GenerateHighlightContent;
 
 
 namespace NoteHighlightAddin
@@ -22,7 +23,7 @@ namespace NoteHighlightAddin
 
         private LanguageRibbonController _languageRibbonController;
         private readonly LanguageEditorViewModel _languageEditor;
-        private Button _btnAddKeywordGroup;
+                private Button _btnAddKeywordGroup;
         private Button _btnRemoveKeywordGroup;
         private Button _btnMoveKeywordGroupUp;
         private Button _btnMoveKeywordGroupDown;
@@ -32,6 +33,12 @@ namespace NoteHighlightAddin
         private KeywordGroupDetailsController _groupDetailsController;
         private KeywordWordEditorController _wordEditorController;
         private WebView2 _previewWebView; // WebView2 control for preview
+        private readonly IPreviewHtmlService _previewHtmlService; // Service for generating preview HTML
+        private readonly IPreviewSampleCodeService _previewSampleCodeService;
+        // adding a timer to refresh the preview after a short delay to avoid multiple rapid updates
+        private readonly Timer _previewRefreshTimer;
+        private bool _isGeneratingPreview;
+        private bool _previewRefreshPending;
 
         public SettingsForm()
         {
@@ -39,11 +46,23 @@ namespace NoteHighlightAddin
 
             // Connect the form events explicitly. This avoids depending on the WinForms designer event wiring.
             Shown += SettingsForm_Shown;
-            FormClosed += SettingsForm_FormClosed;
 
-            _languageEditor =
+            _languageEditor = 
                 new LanguageEditorViewModel(
                     new LanguageEditorService());
+
+            _previewHtmlService =
+             new PreviewHtmlService();
+
+            _previewSampleCodeService =
+                new PreviewSampleCodeService();
+
+            _previewRefreshTimer = new Timer
+                {
+                    Interval = 250
+                };
+
+            _previewRefreshTimer.Tick += PreviewRefreshTimer_Tick;
 
             _languageEditor.ConfigurationChanged +=
                 LanguageEditor_ConfigurationChanged;
@@ -133,6 +152,12 @@ namespace NoteHighlightAddin
                     lbxLanguages,
                     cmbAvailableLanguages);
 
+            lbxLanguages.SelectedIndexChanged -=
+                lbxLanguages_SelectedIndexChanged;
+
+            lbxLanguages.SelectedIndexChanged +=
+                lbxLanguages_SelectedIndexChanged;
+
             _wordEditorController.UpdateState();
         }
 
@@ -161,10 +186,12 @@ namespace NoteHighlightAddin
             {
                 await _previewWebView.EnsureCoreWebView2Async();
 
-                _previewWebView.CoreWebView2.NavigationCompleted += PreviewWebView_NavigationCompleted;
+                _previewWebView.NavigationCompleted += PreviewWebView_NavigationCompleted;
 
                 lblPreviewStatus.Text =
                     "Preview ready.";
+
+                RequestPreviewRefresh();
             }
             catch (Exception exception)
             {
@@ -179,31 +206,81 @@ namespace NoteHighlightAddin
             }
         }
 
-        // adding form closed event handler to cleanup the preview service
-
-        private void SettingsForm_FormClosed(object sender, FormClosedEventArgs e)
+        // adding refresh preview timer tick event handler
+        private void RequestPreviewRefresh()
         {
-            PreviewHtmlServiceTester.Cleanup();
+            if (IsDisposed ||
+                Disposing)
+            {
+                return;
+            }
+
+            _previewRefreshPending =
+                true;
+
+            _previewRefreshTimer.Stop();
+            _previewRefreshTimer.Start();
+        }
+
+        // adding timer tick event handler to refresh the preview after a short delay
+        private void PreviewRefreshTimer_Tick(object sender, EventArgs e)
+        {
+            _previewRefreshTimer.Stop();
+
+            if (!_previewRefreshPending)
+            {
+                return;
+            }
+
+            if (_isGeneratingPreview)
+            {
+                return;
+            }
+
+            _previewRefreshPending =
+                false;
+
+            TestPreview();
         }
 
         // adding preview navigation completed event handler
 
-        private void PreviewWebView_NavigationCompleted(object sender, CoreWebView2NavigationCompletedEventArgs e)
-        {
-            lblPreviewStatus.Text =
-                e.IsSuccess
-                    ? "Preview loaded successfully."
-                    : "Preview could not be loaded.";
-        }
+        private void PreviewWebView_NavigationCompleted(
+             object sender,
+             CoreWebView2NavigationCompletedEventArgs e)
+                {
+                    if (e.IsSuccess)
+                    {
+                        lblPreviewStatus.Text =
+                            "Preview loaded successfully.";
 
-        private async void TestPreview()
+                        return;
+                    }
+
+                    lblPreviewStatus.Text =
+                        "Preview could not be loaded: " +
+                        e.WebErrorStatus;
+                }
+
+        private void TestPreview()
         {
+            if (_isGeneratingPreview)
+            {
+                _previewRefreshPending =
+                    true;
+
+                return;
+            }
+
             try
             {
                 if (!_languageEditor.HasConfiguration)
                 {
                     lblPreviewStatus.Text =
                         "Select a language first.";
+
+                    _previewRefreshPending =
+                        false;
 
                     return;
                 }
@@ -214,26 +291,38 @@ namespace NoteHighlightAddin
                     lblPreviewStatus.Text =
                         "Preview is not ready.";
 
+                    _previewRefreshPending =
+                        true;
+
                     return;
                 }
+
+                _isGeneratingPreview =
+                    true;
 
                 lblPreviewStatus.Text =
                     "Generating preview...";
 
+                HighLightParameter parameter =
+                    CreatePreviewParameter();
+
                 string htmlPath =
-                    PreviewHtmlServiceTester.GeneratePreview(
-                        _languageEditor.Configuration);
+                    _previewHtmlService.GeneratePreviewHtml(
+                        _languageEditor.Configuration,
+                        parameter);
+
+                ValidatePreviewHtml(
+                    htmlPath);
 
                 Uri htmlUri =
-                    new Uri(htmlPath);
+                    new Uri(
+                        htmlPath);
 
-                _previewWebView.CoreWebView2.Navigate(
-                    htmlUri.AbsoluteUri);
+                _previewWebView.Source =
+                    htmlUri;
 
                 lblPreviewStatus.Text =
                     "Loading preview...";
-
-                await Task.CompletedTask;
             }
             catch (Exception exception)
             {
@@ -245,6 +334,101 @@ namespace NoteHighlightAddin
                     "Preview error",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Error);
+            }
+            finally
+            {
+                _isGeneratingPreview =
+                    false;
+
+                if (_previewRefreshPending)
+                {
+                    _previewRefreshTimer.Stop();
+                    _previewRefreshTimer.Start();
+                }
+            }
+        }
+
+        private HighLightParameter CreatePreviewParameter()
+        {
+            return new HighLightParameter
+            {
+                FileName =
+                    "notehighlight_preview.py",
+
+                Content =
+                    _previewSampleCodeService.Generate(
+                        _languageEditor.Configuration,
+                        _languageEditor.SelectedGroup),
+
+                CodeType =
+                    _languageEditor.Configuration.Language,
+
+                HighLightStyle =
+                    "shinx",
+
+                ShowLineNumber =
+                    true,
+
+                HighlightColor =
+                    Color.Transparent,
+
+                Font =
+                    fontDialog1.Font.Name,
+
+                FontSize =
+                    (int)Math.Round(
+                        fontDialog1.Font.Size)
+            };
+        }
+
+        // adding CreatePreviewFileName method to determine the file name based on the selected language
+
+        private string CreatePreviewFileName()
+        {
+            string language =
+                _languageEditor.Configuration.Language;
+
+            if (string.Equals(
+                language,
+                "python",
+                StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(
+                    language,
+                    "python.lang",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return "notehighlight_preview.py";
+            }
+
+            return "notehighlight_preview.txt";
+        }
+
+        private static void ValidatePreviewHtml(
+            string htmlPath)
+        {
+            if (string.IsNullOrWhiteSpace(
+                htmlPath))
+            {
+                throw new InvalidOperationException(
+                    "The preview service returned an empty HTML path.");
+            }
+
+            if (!File.Exists(
+                htmlPath))
+            {
+                throw new FileNotFoundException(
+                    "The preview HTML file was not generated.",
+                    htmlPath);
+            }
+
+            FileInfo htmlFile =
+                new FileInfo(
+                    htmlPath);
+
+            if (htmlFile.Length == 0)
+            {
+                throw new InvalidOperationException(
+                    "The generated preview HTML file is empty.");
             }
         }
 
@@ -403,7 +587,7 @@ namespace NoteHighlightAddin
             _groupEditorController.AddGroup();
         }
 
-        private void FocusGroupNameEditor()
+               private void FocusGroupNameEditor()
         {
             txtGroupName.Focus();
             txtGroupName.SelectAll();
@@ -455,6 +639,8 @@ namespace NoteHighlightAddin
         {
             TestPreview();
         }
+
+
 
         /// <summary>
         /// Executes a read-map-write-read round-trip test for python.lang
@@ -527,6 +713,12 @@ namespace NoteHighlightAddin
             }
         }
 
+        private void LanguageEditor_ConfigurationChanged(object sender, 
+            EventArgs e)
+        {
+            UpdateWindowTitle();
+        }
+
         // Metodo temporal 
 
         private void TestLanguageEditorService()
@@ -584,11 +776,11 @@ namespace NoteHighlightAddin
             }
         }
 
-        private void lbxLanguages_SelectedIndexChanged(
-            object sender,
-            EventArgs e)
+        private void lbxLanguages_SelectedIndexChanged(object sender, EventArgs e)
         {
             _languageRibbonController.LoadSelectedLanguageConfiguration();
+
+            RequestPreviewRefresh();
         }
 
         private void BtnFont_Click(
@@ -622,6 +814,8 @@ namespace NoteHighlightAddin
                     fontDialog1.Font.Size);
 
             NoteHighlightForm.Properties.Settings.Default.Save();
+
+            RequestPreviewRefresh();
         }
 
         private void ChShowTableBorder_CheckedChanged(
@@ -634,27 +828,50 @@ namespace NoteHighlightAddin
             NoteHighlightForm.Properties.Settings.Default.Save();
         }
 
-        protected override void OnFormClosed(
-            FormClosedEventArgs e)
+        // updated OnFormClosed to unsubscribe from WebView2 events and dispose of the preview service
+        protected override void OnFormClosed(FormClosedEventArgs e)
         {
             _languageEditor.ConfigurationChanged -=
                 LanguageEditor_ConfigurationChanged;
+
+            if (_previewWebView != null)
+            {
+                _previewWebView.NavigationCompleted -=
+                    PreviewWebView_NavigationCompleted;
+            }
+
+            _previewRefreshTimer.Stop();
+
+            _previewRefreshTimer.Tick -=
+                PreviewRefreshTimer_Tick;
+
+            _previewRefreshTimer.Dispose();
+
+            _previewHtmlService.Dispose();
 
             base.OnFormClosed(
                 e);
         }
 
 
-        private async void SettingsForm_Shown(object sender, EventArgs e)
+        private async void SettingsForm_Shown(
+    object sender,
+    EventArgs e)
         {
-            WindowState = FormWindowState.Minimized;
-            WindowState = FormWindowState.Normal;
+            WindowState =
+                FormWindowState.Minimized;
 
-            SetForegroundWindow(Handle);
+            WindowState =
+                FormWindowState.Normal;
+
+            SetForegroundWindow(
+                Handle);
 
             await InitializePreviewWebViewAsync();
 
             _languageRibbonController.RefreshLanguageList();
+
+            RequestPreviewRefresh();
         }
 
         private void BtnRemoveLanguage_Click(
@@ -683,14 +900,6 @@ namespace NoteHighlightAddin
         {
             _groupSelectionController.RefreshSelection();
         }
-
-        private void LanguageEditor_ConfigurationChanged(
-            object sender,
-            EventArgs e)
-        {
-            UpdateWindowTitle();
-        }
-
 
         private void UpdateWindowTitle()
         {
@@ -770,8 +979,7 @@ namespace NoteHighlightAddin
             _wordEditorController.UpdateState();
         }
 
-        private void txtNewGroupWord_KeyDown(
-            object sender,
+        private void txtNewGroupWord_KeyDown( object sender, 
             KeyEventArgs e)
         {
             _wordEditorController.HandleWordInputKeyDown(
