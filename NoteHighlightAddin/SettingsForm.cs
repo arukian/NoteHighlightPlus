@@ -69,17 +69,21 @@ namespace NoteHighlightAddin
 
             // Connect the word editor events explicitly. This avoids depending
             // on the WinForms designer event wiring.
-            btnAddGroupWord.Click +=
-                btnAddGroupWord_Click;
+            btnAddGroupWord.Click -= btnAddGroupWord_Click;
 
-            btnRemoveGroupWord.Click +=
-                btnRemoveGroupWord_Click;
+            btnAddGroupWord.Click += btnAddGroupWord_Click;
 
-            lbxGroupWords.SelectedIndexChanged +=
-                lbxGroupWords_SelectedIndexChanged;
+            btnRemoveGroupWord.Click -= btnRemoveGroupWord_Click;
 
-            txtNewGroupWord.KeyDown +=
-                txtNewGroupWord_KeyDown;
+            btnRemoveGroupWord.Click += btnRemoveGroupWord_Click;
+
+            lbxGroupWords.SelectedIndexChanged -= lbxGroupWords_SelectedIndexChanged;
+
+            lbxGroupWords.SelectedIndexChanged += lbxGroupWords_SelectedIndexChanged;
+
+            txtNewGroupWord.KeyDown -= txtNewGroupWord_KeyDown;
+
+            txtNewGroupWord.KeyDown += txtNewGroupWord_KeyDown;
 
             InitializeGroupManagementControls();
 
@@ -580,14 +584,14 @@ namespace NoteHighlightAddin
             _btnMoveKeywordGroupDown.BringToFront();
         }
 
-        private void btnAddKeywordGroup_Click(
-            object sender,
-            EventArgs e)
+        private void btnAddKeywordGroup_Click(object sender, EventArgs e)
         {
             _groupEditorController.AddGroup();
+
+            RequestPreviewRefresh();
         }
 
-               private void FocusGroupNameEditor()
+        private void FocusGroupNameEditor()
         {
             txtGroupName.Focus();
             txtGroupName.SelectAll();
@@ -612,25 +616,25 @@ namespace NoteHighlightAddin
             _groupEditorController.EditRegex();
         }
 
-        private void btnMoveKeywordGroupUp_Click(
-            object sender,
-            EventArgs e)
+        private void btnMoveKeywordGroupUp_Click(object sender, EventArgs e)
         {
             _groupEditorController.MoveSelectedGroupUp();
+
+            RequestPreviewRefresh();
         }
 
-        private void btnMoveKeywordGroupDown_Click(
-            object sender,
-            EventArgs e)
+        private void btnMoveKeywordGroupDown_Click(object sender, EventArgs e)
         {
             _groupEditorController.MoveSelectedGroupDown();
+
+            RequestPreviewRefresh();
         }
 
-        private void btnRemoveKeywordGroup_Click(
-            object sender,
-            EventArgs e)
+        private void btnRemoveKeywordGroup_Click(object sender, EventArgs e)
         {
             _groupEditorController.RemoveSelectedGroup();
+
+            RequestPreviewRefresh();
         }
 
         private void btnTestRoundTrip_Click(
@@ -894,11 +898,11 @@ namespace NoteHighlightAddin
         {
         }
 
-        private void lbxKeywordGroups_SelectedIndexChanged(
-            object sender,
-            EventArgs e)
+        private void lbxKeywordGroups_SelectedIndexChanged(object sender, EventArgs e)
         {
             _groupSelectionController.RefreshSelection();
+
+            RequestPreviewRefresh();
         }
 
         private void UpdateWindowTitle()
@@ -958,18 +962,18 @@ namespace NoteHighlightAddin
             _groupDetailsController.ApplyChanges();
         }
 
-        private void btnAddGroupWord_Click(
-            object sender,
-            EventArgs e)
+        private void btnAddGroupWord_Click(object sender, EventArgs e)
         {
             _wordEditorController.AddWord();
+
+            RequestPreviewRefresh();
         }
 
-        private void btnRemoveGroupWord_Click(
-            object sender,
-            EventArgs e)
+        private void btnRemoveGroupWord_Click(object sender, EventArgs e)
         {
             _wordEditorController.RemoveSelectedWord();
+
+            RequestPreviewRefresh();
         }
 
         private void lbxGroupWords_SelectedIndexChanged(
@@ -979,11 +983,14 @@ namespace NoteHighlightAddin
             _wordEditorController.UpdateState();
         }
 
-        private void txtNewGroupWord_KeyDown( object sender, 
-            KeyEventArgs e)
+        private void txtNewGroupWord_KeyDown(object sender, KeyEventArgs e)
         {
-            _wordEditorController.HandleWordInputKeyDown(
-                e);
+            _wordEditorController.HandleWordInputKeyDown(e);
+
+            if (e.KeyCode == Keys.Enter)
+            {
+                RequestPreviewRefresh();
+            }
         }
 
 
