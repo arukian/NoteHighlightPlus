@@ -39,10 +39,20 @@ namespace NoteHighlightAddin
         private readonly Timer _previewRefreshTimer;
         private bool _isGeneratingPreview;
         private bool _previewRefreshPending;
+        private bool _isFormClosingConfirmed;
+        // Adding to protect language change 
+        private bool _isChangingLanguageSelection;
+        private int _previousLanguageIndex = -1;
 
         public SettingsForm()
         {
             InitializeComponent();
+
+            // Closing form confirmation before saving the language configuration to prevent accidental loss of unsaved changes
+
+            FormClosing -= SettingsForm_FormClosing;
+
+            FormClosing += SettingsForm_FormClosing;
 
             // adding save group functionality to save the language configuration
 
@@ -187,12 +197,81 @@ namespace NoteHighlightAddin
                 lbxLanguages_SelectedIndexChanged;
 
             _wordEditorController.UpdateState();
+
+            UpdateWindowTitle();
+            UpdateSaveButtonState();
         }
 
         // adding call to save functionality to save the language configuration when the save button is clicked
-        private void btnSaveLanguage_Click( object sender, EventArgs e)
+        private void btnSaveLanguage_Click(object sender, EventArgs e)
         {
             SaveCurrentLanguage();
+        }
+
+        private bool TrySaveCurrentLanguage()
+        {
+            if (!_languageEditor.HasConfiguration)
+            {
+                return false;
+            }
+
+            try
+            {
+                _groupDetailsController.ApplyChanges(
+                    false);
+
+                _languageEditor.Save();
+
+                _groupSelectionController
+                    .RefreshSelectedListItem();
+
+                UpdateWindowTitle();
+                UpdateSaveButtonState();
+
+                return true;
+            }
+            catch (UnauthorizedAccessException exception)
+            {
+                MessageBox.Show(
+                    this,
+                    "The language files could not be saved because access was denied."
+                    + Environment.NewLine
+                    + Environment.NewLine
+                    + exception.Message,
+                    "Save Language",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+
+                return false;
+            }
+            catch (IOException exception)
+            {
+                MessageBox.Show(
+                    this,
+                    "An error occurred while writing the language files."
+                    + Environment.NewLine
+                    + Environment.NewLine
+                    + exception.Message,
+                    "Save Language",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+
+                return false;
+            }
+            catch (Exception exception)
+            {
+                MessageBox.Show(
+                    this,
+                    "The language configuration could not be saved."
+                    + Environment.NewLine
+                    + Environment.NewLine
+                    + exception.Message,
+                    "Save Language",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+
+                return false;
+            }
         }
 
         private void SaveCurrentLanguage()
@@ -209,64 +288,36 @@ namespace NoteHighlightAddin
                 return;
             }
 
-            try
+            if (!TrySaveCurrentLanguage())
             {
-                // Ensures that the text currently being edited
-                // is copied to the configuration before saving.
-                _groupDetailsController.ApplyChanges(
-                    false);
-
-                _languageEditor.Save();
-
-                _groupSelectionController
-                    .RefreshSelectedListItem();
-
-                UpdateWindowTitle();
-                UpdateSaveButtonState();
-
-                MessageBox.Show(
-                    this,
-                    "The language configuration was saved successfully.",
-                    "Save Language",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Information);
+                return;
             }
-            catch (UnauthorizedAccessException exception)
+
+            MessageBox.Show(
+                this,
+                "The language configuration was saved successfully.",
+                "Save Language",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
+        }
+
+        // adding confirmation for group saving when the form is closing to prevent accidental loss of unsaved changes
+
+        private void SettingsForm_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            if (_isFormClosingConfirmed)
             {
-                MessageBox.Show(
-                    this,
-                    "The language files could not be saved because access was denied."
-                    + Environment.NewLine
-                    + Environment.NewLine
-                    + exception.Message,
-                    "Save Language",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Error);
+                return;
             }
-            catch (IOException exception)
+
+            if (!ConfirmPendingLanguageChanges())
             {
-                MessageBox.Show(
-                    this,
-                    "An error occurred while writing the language files."
-                    + Environment.NewLine
-                    + Environment.NewLine
-                    + exception.Message,
-                    "Save Language",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Error);
+                e.Cancel = true;
+                return;
             }
-            catch (Exception exception)
-            {
-                MessageBox.Show(
-                    this,
-                    "The language configuration could not be saved."
-                    + Environment.NewLine
-                    + Environment.NewLine
-                    + exception.Message,
-                    "Save Language",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Error);
-            }
+
+            _isFormClosingConfirmed =
+                true;
         }
 
         private void SettingsForm_KeyDown(
@@ -510,6 +561,49 @@ namespace NoteHighlightAddin
                     _previewRefreshTimer.Start();
                 }
             }
+        }
+
+        // adding confirmation for group saving 
+
+        private bool ConfirmPendingLanguageChanges()
+        {
+            if (!_languageEditor.HasConfiguration ||
+                !_languageEditor.HasUnsavedChanges)
+            {
+                return true;
+            }
+
+            string languageName =
+                _languageEditor.Configuration?.Language;
+
+            if (string.IsNullOrWhiteSpace(languageName))
+            {
+                languageName =
+                    "the current language";
+            }
+
+            DialogResult result =
+                MessageBox.Show(
+                    this,
+                    "Save changes to " +
+                    languageName +
+                    "?",
+                    "Unsaved Changes",
+                    MessageBoxButtons.YesNoCancel,
+                    MessageBoxIcon.Warning,
+                    MessageBoxDefaultButton.Button1);
+
+            if (result == DialogResult.Cancel)
+            {
+                return false;
+            }
+
+            if (result == DialogResult.No)
+            {
+                return true;
+            }
+
+            return TrySaveCurrentLanguage();
         }
 
         private HighLightParameter CreatePreviewParameter()
@@ -943,9 +1037,69 @@ namespace NoteHighlightAddin
             object sender,
             EventArgs e)
         {
-            _languageRibbonController.LoadSelectedLanguageConfiguration();
+            if (_isChangingLanguageSelection)
+            {
+                return;
+            }
 
-            RequestPreviewRefresh();
+            int requestedLanguageIndex =
+                lbxLanguages.SelectedIndex;
+
+            bool isChangingExistingSelection =
+                _previousLanguageIndex >= 0 &&
+                requestedLanguageIndex != _previousLanguageIndex;
+
+            if (isChangingExistingSelection &&
+                !ConfirmPendingLanguageChanges())
+            {
+                try
+                {
+                    _isChangingLanguageSelection =
+                        true;
+
+                    lbxLanguages.SelectedIndex =
+                        _previousLanguageIndex;
+                }
+                finally
+                {
+                    _isChangingLanguageSelection =
+                        false;
+                }
+
+                return;
+            }
+
+            try
+            {
+                _languageRibbonController
+                    .LoadSelectedLanguageConfiguration();
+
+                _previousLanguageIndex =
+                    lbxLanguages.SelectedIndex;
+
+                UpdateWindowTitle();
+                UpdateSaveButtonState();
+
+                RequestPreviewRefresh();
+            }
+            catch
+            {
+                try
+                {
+                    _isChangingLanguageSelection =
+                        true;
+
+                    lbxLanguages.SelectedIndex =
+                        _previousLanguageIndex;
+                }
+                finally
+                {
+                    _isChangingLanguageSelection =
+                        false;
+                }
+
+                throw;
+            }
         }
 
         private void BtnFont_Click(
@@ -1018,10 +1172,11 @@ namespace NoteHighlightAddin
         }
 
 
-        private async void SettingsForm_Shown(
-            object sender,
-            EventArgs e)
+        private async void SettingsForm_Shown(object sender, EventArgs e)
         {
+
+            _isFormClosingConfirmed = false;
+
             WindowState =
                 FormWindowState.Minimized;
 
@@ -1034,6 +1189,12 @@ namespace NoteHighlightAddin
             await InitializePreviewWebViewAsync();
 
             _languageRibbonController.RefreshLanguageList();
+
+            _previousLanguageIndex =
+                lbxLanguages.SelectedIndex;
+
+            UpdateWindowTitle();
+            UpdateSaveButtonState();
 
             RequestPreviewRefresh();
         }
