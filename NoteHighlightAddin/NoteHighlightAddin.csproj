@@ -130,6 +130,8 @@
     <Compile Include="highlight\KeywordGroups\HighlightLanguageMapper.cs" />
     <Compile Include="highlight\KeywordGroups\KeywordGroupConfiguration.cs" />
     <Compile Include="highlight\KeywordGroups\KeywordGroupConfigurationService.cs" />
+    <Compile Include="highlight\KeywordGroups\Metadata\GroupMetadata.cs" />
+    <Compile Include="highlight\KeywordGroups\Metadata\LanguageGroupMetadata.cs" />
     <Compile Include="highlight\KeywordGroups\Readers\HighlightKeywordGroup.cs" />
     <Compile Include="highlight\KeywordGroups\Readers\HighlightLanguageDefinition.cs" />
     <Compile Include="highlight\KeywordGroups\Readers\ILanguageDefinitionReader.cs" />

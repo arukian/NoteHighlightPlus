@@ -23,7 +23,7 @@ namespace NoteHighlightAddin
 
         private LanguageRibbonController _languageRibbonController;
         private readonly LanguageEditorViewModel _languageEditor;
-                private Button _btnAddKeywordGroup;
+        private Button _btnAddKeywordGroup;
         private Button _btnRemoveKeywordGroup;
         private Button _btnMoveKeywordGroupUp;
         private Button _btnMoveKeywordGroupDown;
@@ -32,10 +32,9 @@ namespace NoteHighlightAddin
         private KeywordGroupEditorController _groupEditorController;
         private KeywordGroupDetailsController _groupDetailsController;
         private KeywordWordEditorController _wordEditorController;
-        private WebView2 _previewWebView; // WebView2 control for preview
-        private readonly IPreviewHtmlService _previewHtmlService; // Service for generating preview HTML
+        private WebView2 _previewWebView;
+        private readonly IPreviewHtmlService _previewHtmlService;
         private readonly IPreviewSampleCodeService _previewSampleCodeService;
-        // adding a timer to refresh the preview after a short delay to avoid multiple rapid updates
         private readonly Timer _previewRefreshTimer;
         private bool _isGeneratingPreview;
         private bool _previewRefreshPending;
@@ -47,7 +46,7 @@ namespace NoteHighlightAddin
             // Connect the form events explicitly. This avoids depending on the WinForms designer event wiring.
             Shown += SettingsForm_Shown;
 
-            _languageEditor = 
+            _languageEditor =
                 new LanguageEditorViewModel(
                     new LanguageEditorService());
 
@@ -57,12 +56,14 @@ namespace NoteHighlightAddin
             _previewSampleCodeService =
                 new PreviewSampleCodeService();
 
-            _previewRefreshTimer = new Timer
+            _previewRefreshTimer =
+                new Timer
                 {
                     Interval = 250
                 };
 
-            _previewRefreshTimer.Tick += PreviewRefreshTimer_Tick;
+            _previewRefreshTimer.Tick +=
+                PreviewRefreshTimer_Tick;
 
             _languageEditor.ConfigurationChanged +=
                 LanguageEditor_ConfigurationChanged;
@@ -165,7 +166,9 @@ namespace NoteHighlightAddin
             _wordEditorController.UpdateState();
         }
 
-        // Initialize the WebView2 control for preview asynchronously
+        /// <summary>
+        /// Initializes the embedded WebView2 preview.
+        /// </summary>
         private async Task InitializePreviewWebViewAsync()
         {
             if (_previewWebView != null)
@@ -210,7 +213,9 @@ namespace NoteHighlightAddin
             }
         }
 
-        // adding refresh preview timer tick event handler
+        /// <summary>
+        /// Schedules a preview refresh after a short quiet period.
+        /// </summary>
         private void RequestPreviewRefresh()
         {
             if (IsDisposed ||
@@ -226,8 +231,9 @@ namespace NoteHighlightAddin
             _previewRefreshTimer.Start();
         }
 
-        // adding timer tick event handler to refresh the preview after a short delay
-        private void PreviewRefreshTimer_Tick(object sender, EventArgs e)
+        private void PreviewRefreshTimer_Tick(
+            object sender,
+            EventArgs e)
         {
             _previewRefreshTimer.Stop();
 
@@ -244,29 +250,30 @@ namespace NoteHighlightAddin
             _previewRefreshPending =
                 false;
 
-            TestPreview();
+            RefreshPreview();
         }
 
-        // adding preview navigation completed event handler
-
         private void PreviewWebView_NavigationCompleted(
-             object sender,
-             CoreWebView2NavigationCompletedEventArgs e)
-                {
-                    if (e.IsSuccess)
-                    {
-                        lblPreviewStatus.Text =
-                            "Preview loaded successfully.";
+            object sender,
+            CoreWebView2NavigationCompletedEventArgs e)
+        {
+            if (e.IsSuccess)
+            {
+                lblPreviewStatus.Text =
+                    "Preview loaded successfully.";
 
-                        return;
-                    }
+                return;
+            }
 
-                    lblPreviewStatus.Text =
-                        "Preview could not be loaded: " +
-                        e.WebErrorStatus;
-                }
+            lblPreviewStatus.Text =
+                "Preview could not be loaded: " +
+                e.WebErrorStatus;
+        }
 
-        private void TestPreview()
+        /// <summary>
+        /// Generates and displays the current language preview.
+        /// </summary>
+        private void RefreshPreview()
         {
             if (_isGeneratingPreview)
             {
@@ -357,7 +364,7 @@ namespace NoteHighlightAddin
             return new HighLightParameter
             {
                 FileName =
-                    "notehighlight_preview.py",
+                    CreatePreviewFileName(),
 
                 Content =
                     _previewSampleCodeService.Generate(
@@ -384,8 +391,6 @@ namespace NoteHighlightAddin
                         fontDialog1.Font.Size)
             };
         }
-
-        // adding CreatePreviewFileName method to determine the file name based on the selected language
 
         private string CreatePreviewFileName()
         {
@@ -584,7 +589,9 @@ namespace NoteHighlightAddin
             _btnMoveKeywordGroupDown.BringToFront();
         }
 
-        private void btnAddKeywordGroup_Click(object sender, EventArgs e)
+        private void btnAddKeywordGroup_Click(
+            object sender,
+            EventArgs e)
         {
             _groupEditorController.AddGroup();
 
@@ -616,35 +623,32 @@ namespace NoteHighlightAddin
             _groupEditorController.EditRegex();
         }
 
-        private void btnMoveKeywordGroupUp_Click(object sender, EventArgs e)
+        private void btnMoveKeywordGroupUp_Click(
+            object sender,
+            EventArgs e)
         {
             _groupEditorController.MoveSelectedGroupUp();
 
             RequestPreviewRefresh();
         }
 
-        private void btnMoveKeywordGroupDown_Click(object sender, EventArgs e)
+        private void btnMoveKeywordGroupDown_Click(
+            object sender,
+            EventArgs e)
         {
             _groupEditorController.MoveSelectedGroupDown();
 
             RequestPreviewRefresh();
         }
 
-        private void btnRemoveKeywordGroup_Click(object sender, EventArgs e)
+        private void btnRemoveKeywordGroup_Click(
+            object sender,
+            EventArgs e)
         {
             _groupEditorController.RemoveSelectedGroup();
 
             RequestPreviewRefresh();
         }
-
-        private void btnTestRoundTrip_Click(
-            object sender,
-            EventArgs e)
-        {
-            TestPreview();
-        }
-
-
 
         /// <summary>
         /// Executes a read-map-write-read round-trip test for python.lang
@@ -717,13 +721,15 @@ namespace NoteHighlightAddin
             }
         }
 
-        private void LanguageEditor_ConfigurationChanged(object sender, 
+        private void LanguageEditor_ConfigurationChanged(
+            object sender,
             EventArgs e)
         {
             UpdateWindowTitle();
+            RequestPreviewRefresh();
         }
 
-        // Metodo temporal 
+        // Temporary diagnostic helper.
 
         private void TestLanguageEditorService()
         {
@@ -780,7 +786,9 @@ namespace NoteHighlightAddin
             }
         }
 
-        private void lbxLanguages_SelectedIndexChanged(object sender, EventArgs e)
+        private void lbxLanguages_SelectedIndexChanged(
+            object sender,
+            EventArgs e)
         {
             _languageRibbonController.LoadSelectedLanguageConfiguration();
 
@@ -832,7 +840,6 @@ namespace NoteHighlightAddin
             NoteHighlightForm.Properties.Settings.Default.Save();
         }
 
-        // updated OnFormClosed to unsubscribe from WebView2 events and dispose of the preview service
         protected override void OnFormClosed(FormClosedEventArgs e)
         {
             _languageEditor.ConfigurationChanged -=
@@ -859,8 +866,8 @@ namespace NoteHighlightAddin
 
 
         private async void SettingsForm_Shown(
-    object sender,
-    EventArgs e)
+            object sender,
+            EventArgs e)
         {
             WindowState =
                 FormWindowState.Minimized;
@@ -898,7 +905,9 @@ namespace NoteHighlightAddin
         {
         }
 
-        private void lbxKeywordGroups_SelectedIndexChanged(object sender, EventArgs e)
+        private void lbxKeywordGroups_SelectedIndexChanged(
+            object sender,
+            EventArgs e)
         {
             _groupSelectionController.RefreshSelection();
 
@@ -962,14 +971,18 @@ namespace NoteHighlightAddin
             _groupDetailsController.ApplyChanges();
         }
 
-        private void btnAddGroupWord_Click(object sender, EventArgs e)
+        private void btnAddGroupWord_Click(
+            object sender,
+            EventArgs e)
         {
             _wordEditorController.AddWord();
 
             RequestPreviewRefresh();
         }
 
-        private void btnRemoveGroupWord_Click(object sender, EventArgs e)
+        private void btnRemoveGroupWord_Click(
+            object sender,
+            EventArgs e)
         {
             _wordEditorController.RemoveSelectedWord();
 
@@ -983,7 +996,9 @@ namespace NoteHighlightAddin
             _wordEditorController.UpdateState();
         }
 
-        private void txtNewGroupWord_KeyDown(object sender, KeyEventArgs e)
+        private void txtNewGroupWord_KeyDown(
+            object sender,
+            KeyEventArgs e)
         {
             _wordEditorController.HandleWordInputKeyDown(e);
 
@@ -992,16 +1007,6 @@ namespace NoteHighlightAddin
                 RequestPreviewRefresh();
             }
         }
-
-
-        //adding button
-        private void btnRefreshPreview_Click(object sender, EventArgs e)
-        {
-            TestPreview();
-        }
-
-
-
 
     }
 }
