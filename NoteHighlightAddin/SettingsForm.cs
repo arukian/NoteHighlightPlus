@@ -14,6 +14,7 @@ using System.Threading.Tasks;
 using GenerateHighlightContent;
 
 
+
 namespace NoteHighlightAddin
 {
     public partial class SettingsForm : Form
@@ -321,9 +322,30 @@ namespace NoteHighlightAddin
 
             try
             {
-                await _previewWebView.EnsureCoreWebView2Async();
+                string userDataFolder =
+                    Path.Combine(
+                        Environment.GetFolderPath(
+                            Environment.SpecialFolder.LocalApplicationData),
+                        "NoteHighlightPlus",
+                        "WebView2");
 
-                _previewWebView.NavigationCompleted += PreviewWebView_NavigationCompleted;
+                Directory.CreateDirectory(
+                    userDataFolder);
+
+                CoreWebView2Environment environment =
+                    await CoreWebView2Environment.CreateAsync(
+                        browserExecutableFolder: null,
+                        userDataFolder: userDataFolder,
+                        options: null);
+
+                await _previewWebView.EnsureCoreWebView2Async(
+                    environment);
+
+                _previewWebView.NavigationCompleted -=
+                    PreviewWebView_NavigationCompleted;
+
+                _previewWebView.NavigationCompleted +=
+                    PreviewWebView_NavigationCompleted;
 
                 lblPreviewStatus.Text =
                     "Preview ready.";
@@ -336,6 +358,7 @@ namespace NoteHighlightAddin
                     "WebView2 initialization failed.";
 
                 MessageBox.Show(
+                    this,
                     exception.ToString(),
                     "WebView2 error",
                     MessageBoxButtons.OK,
