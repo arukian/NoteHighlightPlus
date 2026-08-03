@@ -131,6 +131,8 @@
     <Compile Include="highlight\KeywordGroups\KeywordGroupConfiguration.cs" />
     <Compile Include="highlight\KeywordGroups\KeywordGroupConfigurationService.cs" />
     <Compile Include="highlight\KeywordGroups\Metadata\GroupMetadata.cs" />
+    <Compile Include="highlight\KeywordGroups\Metadata\ILanguageGroupMetadataStore.cs" />
+    <Compile Include="highlight\KeywordGroups\Metadata\JsonLanguageGroupMetadataStore.cs" />
     <Compile Include="highlight\KeywordGroups\Metadata\LanguageGroupMetadata.cs" />
     <Compile Include="highlight\KeywordGroups\Readers\HighlightKeywordGroup.cs" />
     <Compile Include="highlight\KeywordGroups\Readers\HighlightLanguageDefinition.cs" />

@@ -142,7 +142,8 @@ namespace NoteHighlightAddin
         }
 
 
-        public void ApplyChanges()
+        public void ApplyChanges(
+    bool refreshSelectedListItem = true)
         {
             if (_isLoading)
             {
@@ -179,7 +180,10 @@ namespace NoteHighlightAddin
 
             _languageEditor.MarkAsModified();
 
-            _refreshSelectedListItem();
+            if (refreshSelectedListItem)
+            {
+                _refreshSelectedListItem();
+            }
         }
 
 

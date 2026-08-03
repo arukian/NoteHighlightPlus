@@ -31,159 +31,38 @@ namespace NoteHighlightAddin
         /// </summary>
         private void InitializeComponent()
         {
-            this.components =
-                new System.ComponentModel.Container();
-
-            this.fontDialog1 =
-                new System.Windows.Forms.FontDialog();
-
-            this.btnFont =
-                new System.Windows.Forms.Button();
-
-            this.cbShowTableBorder =
-                new System.Windows.Forms.CheckBox();
-
-            this.lblLanguages =
-                new System.Windows.Forms.Label();
-
-            this.lbxLanguages =
-                new System.Windows.Forms.ListBox();
-
-            this.btnRemoveLanguage =
-                new System.Windows.Forms.Button();
-
-            this.lblAddLanguage =
-                new System.Windows.Forms.Label();
-
-            this.cmbAvailableLanguages =
-                new System.Windows.Forms.ComboBox();
-
-            this.btnAddLanguage =
-                new System.Windows.Forms.Button();
-
-            this.lbxKeywordGroups =
-                new System.Windows.Forms.ListBox();
-
-            this.lbxGroupWords =
-                new System.Windows.Forms.ListBox();
-
-            this.txtGroupName =
-                new System.Windows.Forms.TextBox();
-
-            this.txtGroupDescription =
-                new System.Windows.Forms.TextBox();
-
-            this.nudGroupId =
-                new System.Windows.Forms.NumericUpDown();
-
-            this.chkGroupVisible =
-                new System.Windows.Forms.CheckBox();
-
-            this.chkGroupBold =
-                new System.Windows.Forms.CheckBox();
-
-            this.chkGroupItalic =
-                new System.Windows.Forms.CheckBox();
-
-            this.txtNewGroupWord =
-                new System.Windows.Forms.TextBox();
-
-            this.btnAddGroupWord =
-                new System.Windows.Forms.Button();
-
-            this.btnRemoveGroupWord =
-                new System.Windows.Forms.Button();
-
-            this.lblGroupName =
-                new System.Windows.Forms.Label();
-
-            this.lblGroupDescription =
-                new System.Windows.Forms.Label();
-
-            this.lblGroupId =
-                new System.Windows.Forms.Label();
-
-            this.lblGroupColour =
-                new System.Windows.Forms.Label();
-
-            this.cmbGroupColour =
-                new System.Windows.Forms.ComboBox();
-
-            this.grpPreview =
-                new System.Windows.Forms.GroupBox();
-
-            this.pnlPreview =
-                new System.Windows.Forms.Panel();
-
-            this.lblPreviewStatus =
-                new System.Windows.Forms.Label();
-
-            ((System.ComponentModel.ISupportInitialize)
-                (this.nudGroupId)).BeginInit();
-
+            this.fontDialog1 = new System.Windows.Forms.FontDialog();
+            this.btnFont = new System.Windows.Forms.Button();
+            this.cbShowTableBorder = new System.Windows.Forms.CheckBox();
+            this.lblLanguages = new System.Windows.Forms.Label();
+            this.lbxLanguages = new System.Windows.Forms.ListBox();
+            this.btnRemoveLanguage = new System.Windows.Forms.Button();
+            this.lblAddLanguage = new System.Windows.Forms.Label();
+            this.cmbAvailableLanguages = new System.Windows.Forms.ComboBox();
+            this.btnAddLanguage = new System.Windows.Forms.Button();
+            this.lbxKeywordGroups = new System.Windows.Forms.ListBox();
+            this.lbxGroupWords = new System.Windows.Forms.ListBox();
+            this.txtGroupName = new System.Windows.Forms.TextBox();
+            this.txtGroupDescription = new System.Windows.Forms.TextBox();
+            this.nudGroupId = new System.Windows.Forms.NumericUpDown();
+            this.chkGroupVisible = new System.Windows.Forms.CheckBox();
+            this.chkGroupBold = new System.Windows.Forms.CheckBox();
+            this.chkGroupItalic = new System.Windows.Forms.CheckBox();
+            this.txtNewGroupWord = new System.Windows.Forms.TextBox();
+            this.btnAddGroupWord = new System.Windows.Forms.Button();
+            this.btnRemoveGroupWord = new System.Windows.Forms.Button();
+            this.lblGroupName = new System.Windows.Forms.Label();
+            this.lblGroupDescription = new System.Windows.Forms.Label();
+            this.lblGroupId = new System.Windows.Forms.Label();
+            this.lblGroupColour = new System.Windows.Forms.Label();
+            this.cmbGroupColour = new System.Windows.Forms.ComboBox();
+            this.grpPreview = new System.Windows.Forms.GroupBox();
+            this.pnlPreview = new System.Windows.Forms.Panel();
+            this.lblPreviewStatus = new System.Windows.Forms.Label();
+            this.btnSaveLanguage = new System.Windows.Forms.Button();
+            ((System.ComponentModel.ISupportInitialize)(this.nudGroupId)).BeginInit();
             this.grpPreview.SuspendLayout();
             this.SuspendLayout();
-
-            // 
-            // grpPreview
-            // 
-            this.grpPreview.Controls.Add(this.pnlPreview);
-            this.grpPreview.Controls.Add(this.lblPreviewStatus);
-            this.grpPreview.Anchor =
-                ((System.Windows.Forms.AnchorStyles)
-                ((((System.Windows.Forms.AnchorStyles.Top
-                | System.Windows.Forms.AnchorStyles.Bottom)
-                | System.Windows.Forms.AnchorStyles.Left)
-                | System.Windows.Forms.AnchorStyles.Right)));
-
-            this.grpPreview.Location =
-                new System.Drawing.Point(24, 300);
-            this.grpPreview.Name = "grpPreview";
-            this.grpPreview.Size = new System.Drawing.Size(711, 260);
-            this.grpPreview.TabIndex = 30;
-            this.grpPreview.TabStop = false;
-            this.grpPreview.Text = "Preview";
-
-            // 
-            // pnlPreview
-            // 
-            this.pnlPreview.Anchor =
-                ((System.Windows.Forms.AnchorStyles)
-                ((((System.Windows.Forms.AnchorStyles.Top
-                | System.Windows.Forms.AnchorStyles.Bottom)
-                | System.Windows.Forms.AnchorStyles.Left)
-                | System.Windows.Forms.AnchorStyles.Right)));
-
-            this.pnlPreview.BorderStyle =
-                System.Windows.Forms.BorderStyle.FixedSingle;
-
-            this.pnlPreview.Location =
-                new System.Drawing.Point(12, 48);
-
-            this.pnlPreview.Name =
-                "pnlPreview";
-
-            this.pnlPreview.Size =
-                new System.Drawing.Size(687, 200);
-
-            this.pnlPreview.TabIndex =
-                0;
-
-            // 
-            // lblPreviewStatus
-            // 
-            this.lblPreviewStatus.AutoSize = true;
-            this.lblPreviewStatus.Location =
-                new System.Drawing.Point(12, 25);
-            this.lblPreviewStatus.Name =
-                "lblPreviewStatus";
-            this.lblPreviewStatus.Size =
-                new System.Drawing.Size(96, 13);
-            this.lblPreviewStatus.TabIndex =
-                1;
-            this.lblPreviewStatus.Text =
-                "Preview not loaded";
-
             // 
             // fontDialog1
             // 
@@ -428,11 +307,55 @@ namespace NoteHighlightAddin
             this.cmbGroupColour.TabIndex = 26;
             this.cmbGroupColour.TextChanged += new System.EventHandler(this.cmbGroupColour_TextChanged);
             // 
+            // grpPreview
+            // 
+            this.grpPreview.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.grpPreview.Controls.Add(this.pnlPreview);
+            this.grpPreview.Controls.Add(this.lblPreviewStatus);
+            this.grpPreview.Location = new System.Drawing.Point(24, 300);
+            this.grpPreview.Name = "grpPreview";
+            this.grpPreview.Size = new System.Drawing.Size(711, 260);
+            this.grpPreview.TabIndex = 30;
+            this.grpPreview.TabStop = false;
+            this.grpPreview.Text = "Preview";
+            // 
+            // pnlPreview
+            // 
+            this.pnlPreview.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.pnlPreview.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.pnlPreview.Location = new System.Drawing.Point(12, 48);
+            this.pnlPreview.Name = "pnlPreview";
+            this.pnlPreview.Size = new System.Drawing.Size(687, 200);
+            this.pnlPreview.TabIndex = 0;
+            // 
+            // lblPreviewStatus
+            // 
+            this.lblPreviewStatus.AutoSize = true;
+            this.lblPreviewStatus.Location = new System.Drawing.Point(12, 25);
+            this.lblPreviewStatus.Name = "lblPreviewStatus";
+            this.lblPreviewStatus.Size = new System.Drawing.Size(98, 13);
+            this.lblPreviewStatus.TabIndex = 1;
+            this.lblPreviewStatus.Text = "Preview not loaded";
+            // 
+            // btnSaveLanguage
+            // 
+            this.btnSaveLanguage.Location = new System.Drawing.Point(243, 187);
+            this.btnSaveLanguage.Name = "btnSaveLanguage";
+            this.btnSaveLanguage.Size = new System.Drawing.Size(75, 23);
+            this.btnSaveLanguage.TabIndex = 31;
+            this.btnSaveLanguage.Text = "Save";
+            this.btnSaveLanguage.UseVisualStyleBackColor = true;
+            // 
             // SettingsForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(760, 585);
+            this.Controls.Add(this.btnSaveLanguage);
             this.Controls.Add(this.grpPreview);
             this.Controls.Add(this.cmbGroupColour);
             this.Controls.Add(this.lblGroupColour);
@@ -499,5 +422,6 @@ namespace NoteHighlightAddin
         private System.Windows.Forms.GroupBox grpPreview;
         private System.Windows.Forms.Panel pnlPreview;
         private System.Windows.Forms.Label lblPreviewStatus;
+        private Button btnSaveLanguage;
     }
 }

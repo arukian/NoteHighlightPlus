@@ -43,6 +43,12 @@ namespace NoteHighlightAddin
         {
             InitializeComponent();
 
+            // adding save group functionality to save the language configuration
+
+            btnSaveLanguage.Click -= btnSaveLanguage_Click;
+
+            btnSaveLanguage.Click += btnSaveLanguage_Click;
+
             // Connect the form events explicitly. This avoids depending on the WinForms designer event wiring.
             Shown += SettingsForm_Shown;
 
@@ -86,7 +92,23 @@ namespace NoteHighlightAddin
 
             txtNewGroupWord.KeyDown += txtNewGroupWord_KeyDown;
 
+            txtGroupName.Leave -= txtGroupName_Leave;
+
+            txtGroupName.Leave += txtGroupName_Leave;
+
+            txtGroupDescription.Leave -= txtGroupDescription_Leave;
+
+            txtGroupDescription.Leave += txtGroupDescription_Leave;
+
             InitializeGroupManagementControls();
+
+            KeyPreview = true;
+
+            KeyDown -=
+                SettingsForm_KeyDown;
+
+            KeyDown +=
+                SettingsForm_KeyDown;
 
             _wordEditorController =
                 new KeywordWordEditorController(
@@ -164,6 +186,114 @@ namespace NoteHighlightAddin
                 lbxLanguages_SelectedIndexChanged;
 
             _wordEditorController.UpdateState();
+        }
+
+        // adding call to save functionality to save the language configuration when the save button is clicked
+        private void btnSaveLanguage_Click( object sender, EventArgs e)
+        {
+            SaveCurrentLanguage();
+        }
+
+        private void SaveCurrentLanguage()
+        {
+            if (!_languageEditor.HasConfiguration)
+            {
+                MessageBox.Show(
+                    this,
+                    "Select a language before saving.",
+                    "Save Language",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+
+                return;
+            }
+
+            try
+            {
+                // Ensures that the text currently being edited
+                // is copied to the configuration before saving.
+                _groupDetailsController.ApplyChanges(
+                    false);
+
+                _languageEditor.Save();
+
+                _groupSelectionController
+                    .RefreshSelectedListItem();
+
+                UpdateWindowTitle();
+                UpdateSaveButtonState();
+
+                MessageBox.Show(
+                    this,
+                    "The language configuration was saved successfully.",
+                    "Save Language",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+            }
+            catch (UnauthorizedAccessException exception)
+            {
+                MessageBox.Show(
+                    this,
+                    "The language files could not be saved because access was denied."
+                    + Environment.NewLine
+                    + Environment.NewLine
+                    + exception.Message,
+                    "Save Language",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+            }
+            catch (IOException exception)
+            {
+                MessageBox.Show(
+                    this,
+                    "An error occurred while writing the language files."
+                    + Environment.NewLine
+                    + Environment.NewLine
+                    + exception.Message,
+                    "Save Language",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+            }
+            catch (Exception exception)
+            {
+                MessageBox.Show(
+                    this,
+                    "The language configuration could not be saved."
+                    + Environment.NewLine
+                    + Environment.NewLine
+                    + exception.Message,
+                    "Save Language",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+            }
+        }
+
+        private void SettingsForm_KeyDown(
+    object sender,
+    KeyEventArgs e)
+        {
+            if (!e.Control ||
+                e.KeyCode != Keys.S)
+            {
+                return;
+            }
+
+            if (!btnSaveLanguage.Enabled)
+            {
+                return;
+            }
+
+            SaveCurrentLanguage();
+
+            e.Handled = true;
+            e.SuppressKeyPress = true;
+        }
+
+        private void UpdateSaveButtonState()
+        {
+            btnSaveLanguage.Enabled =
+                _languageEditor.HasConfiguration &&
+                _languageEditor.HasUnsavedChanges;
         }
 
         /// <summary>
@@ -722,11 +852,11 @@ namespace NoteHighlightAddin
         }
 
         private void LanguageEditor_ConfigurationChanged(
-            object sender,
-            EventArgs e)
+    object sender,
+    EventArgs e)
         {
             UpdateWindowTitle();
-            RequestPreviewRefresh();
+            UpdateSaveButtonState();
         }
 
         // Temporary diagnostic helper.
@@ -923,17 +1053,19 @@ namespace NoteHighlightAddin
         }
 
         private void txtGroupName_TextChanged(
-            object sender,
-            EventArgs e)
+    object sender,
+    EventArgs e)
         {
-            _groupDetailsController.ApplyChanges();
+            _groupDetailsController.ApplyChanges(
+                false);
         }
 
         private void txtGroupDescription_TextChanged(
             object sender,
             EventArgs e)
         {
-            _groupDetailsController.ApplyChanges();
+            _groupDetailsController.ApplyChanges(
+                false);
         }
 
         private void nudGroupPriority_ValueChanged(
@@ -948,6 +1080,20 @@ namespace NoteHighlightAddin
             EventArgs e)
         {
             _groupDetailsController.ApplyChanges();
+        }
+
+        // adding events for name update 
+
+        private void txtGroupName_Leave(object sender, EventArgs e)
+        {
+            _groupSelectionController.RefreshSelectedListItem();
+        }
+
+        private void txtGroupDescription_Leave(
+            object sender,
+            EventArgs e)
+        {
+            _groupSelectionController.RefreshSelectedListItem();
         }
 
         private void chkGroupBold_CheckedChanged(

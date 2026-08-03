@@ -1,9 +1,11 @@
 ﻿using GenerateHighlightContent.LanguageDefinitions;
 using Infrastructure.Core;
+using NoteHighlightAddin.Highlighting.KeywordGroups.Metadata;
 using NoteHighlightAddin.Highlighting.KeywordGroups.Readers;
 using NoteHighlightAddin.Highlighting.KeywordGroups.Writers;
 using System;
 using System.IO;
+using System.Linq;
 
 namespace NoteHighlightAddin.Highlighting.KeywordGroups.Services
 {
@@ -13,6 +15,7 @@ namespace NoteHighlightAddin.Highlighting.KeywordGroups.Services
         private readonly ILanguageDefinitionReader reader;
         private readonly ILanguageDefinitionWriter writer;
         private readonly HighlightLanguageMapper mapper;
+        private readonly ILanguageGroupMetadataStore metadataStore;
         private readonly string languagesFolder;
 
         public LanguageEditorService()
@@ -20,6 +23,7 @@ namespace NoteHighlightAddin.Highlighting.KeywordGroups.Services
                 new HighlightLanguageDefinitionReader(),
                 new HighlightLanguageDefinitionWriter(),
                 new HighlightLanguageMapper(),
+                new JsonLanguageGroupMetadataStore(),
                 PathManager.LanguagesFolder)
         {
         }
@@ -28,6 +32,7 @@ namespace NoteHighlightAddin.Highlighting.KeywordGroups.Services
             ILanguageDefinitionReader reader,
             ILanguageDefinitionWriter writer,
             HighlightLanguageMapper mapper,
+            ILanguageGroupMetadataStore metadataStore,
             string languagesFolder)
         {
             this.reader =
@@ -41,6 +46,10 @@ namespace NoteHighlightAddin.Highlighting.KeywordGroups.Services
             this.mapper =
                 mapper ?? throw new ArgumentNullException(
                     nameof(mapper));
+
+            this.metadataStore =
+                metadataStore ?? throw new ArgumentNullException(
+                    nameof(metadataStore));
 
             if (string.IsNullOrWhiteSpace(languagesFolder))
             {
@@ -74,8 +83,19 @@ namespace NoteHighlightAddin.Highlighting.KeywordGroups.Services
                 reader.Read(
                     filePath);
 
-            return mapper.ToEditableConfiguration(
-                definition);
+            EditableLanguageConfiguration configuration =
+                mapper.ToEditableConfiguration(
+                    definition);
+
+            LanguageGroupMetadata metadata =
+                metadataStore.Load(
+                    filePath);
+
+            ApplyMetadata(
+                configuration,
+                metadata);
+
+            return configuration;
         }
 
         public void Save(
@@ -114,6 +134,88 @@ namespace NoteHighlightAddin.Highlighting.KeywordGroups.Services
             writer.Write(
                 definition,
                 filePath);
+
+            LanguageGroupMetadata metadata =
+                CreateMetadata(
+                    configuration);
+
+            metadataStore.Save(
+                filePath,
+                metadata);
+        }
+
+        private static void ApplyMetadata(
+            EditableLanguageConfiguration configuration,
+            LanguageGroupMetadata metadata)
+        {
+            if (configuration?.Groups == null ||
+                metadata?.Groups == null)
+            {
+                return;
+            }
+
+            foreach (KeywordGroupConfiguration group
+                in configuration.Groups)
+            {
+                if (group == null)
+                {
+                    continue;
+                }
+
+                GroupMetadata groupMetadata =
+                    metadata.Groups
+                        .FirstOrDefault(
+                            item =>
+                                item != null &&
+                                item.Id == group.Id);
+
+                if (groupMetadata == null)
+                {
+                    continue;
+                }
+
+                group.DisplayName =
+                    groupMetadata.DisplayName;
+
+                group.Description =
+                    groupMetadata.Description;
+
+                group.Priority =
+                    groupMetadata.Priority;
+
+                group.Visible =
+                    groupMetadata.Visible;
+
+                group.IsCustom =
+                    groupMetadata.IsCustom;
+            }
+        }
+
+        private static LanguageGroupMetadata CreateMetadata(
+            EditableLanguageConfiguration configuration)
+        {
+            var metadata =
+                new LanguageGroupMetadata();
+
+            foreach (KeywordGroupConfiguration group
+                in configuration.Groups
+                    .Where(group => group != null)
+                    .OrderBy(group => group.Priority)
+                    .ThenBy(group => group.Id))
+            {
+                metadata.Groups.Add(
+                    new GroupMetadata
+                    {
+                        Id = group.Id,
+                        DisplayName = group.DisplayName,
+                        Description = group.Description,
+                        Priority = group.Priority,
+                        Visible = group.Visible,
+                        IsCustom = group.IsCustom
+                    });
+            }
+
+            return metadata;
         }
 
         private string GetLanguageFilePath(
