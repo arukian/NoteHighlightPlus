@@ -8,8 +8,8 @@ using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using NoteHighlightAddin;
-using System;
 using System.Windows.Forms;
+using NoteHighlightAddin.Highlighting.Themes;
 
 namespace GenerateHighlightContent.TestConsole
 {
@@ -22,59 +22,12 @@ namespace GenerateHighlightContent.TestConsole
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
-            Application.Run(new SettingsForm());
-        }
- /*
-        Commenting in order to test new dependencies 
-        private static void Main()
-
-        {
-            try
-            {
-                PrintAssemblyLocations();
-                PrintRequiredPaths();
-
-                EditableLanguageConfiguration configuration =
-                    LoadPythonConfiguration();
-
-                PrintConfigurationSummary(
-                    configuration);
-
-                HighLightParameter parameter =
-                    CreatePreviewParameter();
-
-                string htmlPath =
-                    GeneratePreview(
-                        configuration,
-                        parameter);
-
-                ValidateHtml(
-                    htmlPath);
-
-                Console.WriteLine();
-                Console.WriteLine("=== PREVIEW GENERATED ===");
-                Console.WriteLine(htmlPath);
-
-                Process.Start(
-                    new ProcessStartInfo
-                    {
-                        FileName = htmlPath,
-                        UseShellExecute = true
-                    });
-            }
-            catch (Exception exception)
-            {
-                Console.WriteLine();
-                Console.WriteLine("=== ERROR ===");
-                Console.WriteLine(exception);
-            }
-
-            Console.WriteLine();
-            Console.WriteLine("Press any key to finish.");
-            Console.ReadKey();
+            Application.Run(
+                new SettingsForm());
         }
 
-        */
+
+
 
         private static void PrintAssemblyLocations()
         {

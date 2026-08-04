@@ -161,6 +161,10 @@
     <Compile Include="highlight\Preview\Services\Builders\using System.Collections.Generic.cs" />
     <Compile Include="highlight\Preview\Services\IPreviewSampleCodeService.cs" />
     <Compile Include="highlight\Preview\Services\PreviewSampleCodeService.cs" />
+    <Compile Include="highlight\themes\HighlightTheme.cs" />
+    <Compile Include="highlight\themes\HighlightThemeReader.cs" />
+    <Compile Include="highlight\themes\IHighlightThemeReader.cs" />
+    <Compile Include="highlight\themes\ThemeStyle.cs" />
     <Compile Include="HtmlFragment.cs" />
     <Compile Include="HtmlInserter.cs" />
     <Compile Include="KeywordGroupDetailsController.cs" />

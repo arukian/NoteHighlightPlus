@@ -1,17 +1,18 @@
+using GenerateHighlightContent;
 using Infrastructure.Core;
+using Microsoft.Web.WebView2.Core;
+using Microsoft.Web.WebView2.WinForms;
 using NoteHighlightAddin.Highlighting.KeywordGroups;
 using NoteHighlightAddin.Highlighting.KeywordGroups.Services;
 using NoteHighlightAddin.Highlighting.KeywordGroups.Testing;
 using NoteHighlightAddin.Highlighting.KeywordGroups.ViewModels;
 using NoteHighlightAddin.Highlighting.Preview.Services;
+using NoteHighlightAddin.Highlighting.Themes;
 using System;
 using System.Drawing;
 using System.IO;
-using System.Windows.Forms;
-using Microsoft.Web.WebView2.Core;
-using Microsoft.Web.WebView2.WinForms;
 using System.Threading.Tasks;
-using GenerateHighlightContent;
+using System.Windows.Forms;
 
 
 
@@ -1146,6 +1147,7 @@ namespace NoteHighlightAddin
 
             NoteHighlightForm.Properties.Settings.Default.Save();
         }
+
 
         protected override void OnFormClosed(FormClosedEventArgs e)
         {
