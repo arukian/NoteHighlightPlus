@@ -1,7 +1,4 @@
-using GenerateHighlightContent;
 using Infrastructure.Core;
-using Microsoft.Web.WebView2.Core;
-using Microsoft.Web.WebView2.WinForms;
 using NoteHighlightAddin.Highlighting.KeywordGroups;
 using NoteHighlightAddin.Highlighting.KeywordGroups.Services;
 using NoteHighlightAddin.Highlighting.KeywordGroups.Testing;
@@ -11,8 +8,11 @@ using NoteHighlightAddin.Highlighting.Themes;
 using System;
 using System.Drawing;
 using System.IO;
-using System.Threading.Tasks;
 using System.Windows.Forms;
+using Microsoft.Web.WebView2.Core;
+using Microsoft.Web.WebView2.WinForms;
+using System.Threading.Tasks;
+using GenerateHighlightContent;
 
 
 
@@ -37,6 +37,9 @@ namespace NoteHighlightAddin
         private WebView2 _previewWebView;
         private readonly IPreviewHtmlService _previewHtmlService;
         private readonly IPreviewSampleCodeService _previewSampleCodeService;
+        private readonly IHighlightThemeReader _themeReader;
+        private HighlightTheme _activeTheme;
+        private bool _isRefreshingThemeStyle;
         private readonly Timer _previewRefreshTimer;
         private bool _isGeneratingPreview;
         private bool _previewRefreshPending;
@@ -73,6 +76,9 @@ namespace NoteHighlightAddin
 
             _previewSampleCodeService =
                 new PreviewSampleCodeService();
+
+            _themeReader =
+                new HighlightThemeReader();
 
             _previewRefreshTimer =
                 new Timer
@@ -201,6 +207,7 @@ namespace NoteHighlightAddin
 
             UpdateWindowTitle();
             UpdateSaveButtonState();
+            ClearThemeStylePreview();
         }
 
         // adding call to save functionality to save the language configuration when the save button is clicked
@@ -607,6 +614,223 @@ namespace NoteHighlightAddin
             return TrySaveCurrentLanguage();
         }
 
+        private void LoadActiveTheme()
+        {
+            const string activeThemeName =
+                "shinx";
+
+            string themePath =
+                Path.Combine(
+                    PathManager.ThemesFolder,
+                    activeThemeName + ".theme");
+
+            try
+            {
+                _activeTheme =
+                    _themeReader.Read(
+                        themePath);
+
+                RefreshSelectedThemeStyle();
+            }
+            catch (Exception exception)
+            {
+                _activeTheme =
+                    null;
+
+                ClearThemeStylePreview();
+
+                lblThemeStyleStatus.Text =
+                    "Theme could not be loaded: " +
+                    exception.Message;
+            }
+        }
+
+        private void RefreshSelectedThemeStyle()
+        {
+            KeywordGroupConfiguration selectedGroup =
+                _languageEditor.SelectedGroup;
+
+            if (selectedGroup == null)
+            {
+                ClearThemeStylePreview();
+                return;
+            }
+
+            string styleSlotName =
+                "Keywords[" +
+                selectedGroup.Id +
+                "]";
+
+            string comboStyleName =
+                "Keywords" +
+                selectedGroup.Id;
+
+            try
+            {
+                _isRefreshingThemeStyle =
+                    true;
+
+                if (!string.Equals(
+                    cmbGroupColour.Text,
+                    comboStyleName,
+                    StringComparison.OrdinalIgnoreCase))
+                {
+                    cmbGroupColour.SelectedItem =
+                        comboStyleName;
+
+                    if (cmbGroupColour.SelectedIndex < 0)
+                    {
+                        cmbGroupColour.Text =
+                            comboStyleName;
+                    }
+                }
+            }
+            finally
+            {
+                _isRefreshingThemeStyle =
+                    false;
+            }
+
+            if (_activeTheme == null)
+            {
+                pnlGroupColourPreview.BackColor =
+                    SystemColors.Control;
+
+                lblGroupColourValue.Text =
+                    "(theme not loaded)";
+
+                lblThemeStyleStatus.Text =
+                    styleSlotName;
+
+                return;
+            }
+
+            ThemeStyle style =
+                _activeTheme.GetKeywordStyle(
+                    selectedGroup.Id);
+
+            if (style == null)
+            {
+                pnlGroupColourPreview.BackColor =
+                    SystemColors.Control;
+
+                lblGroupColourValue.Text =
+                    "(style not defined)";
+
+                lblThemeStyleStatus.Text =
+                    "Theme: " +
+                    _activeTheme.Name +
+                    " | " +
+                    styleSlotName;
+
+                return;
+            }
+
+            Color parsedColour;
+
+            if (TryParseThemeColour(
+                style.Colour,
+                out parsedColour))
+            {
+                pnlGroupColourPreview.BackColor =
+                    parsedColour;
+            }
+            else
+            {
+                pnlGroupColourPreview.BackColor =
+                    SystemColors.Control;
+            }
+
+            lblGroupColourValue.Text =
+                style.Colour;
+
+            lblThemeStyleStatus.Text =
+                "Theme: " +
+                _activeTheme.Name +
+                Environment.NewLine +
+                "Bold: " +
+                (style.Bold ? "Yes" : "No") +
+                " | Italic: " +
+                (style.Italic ? "Yes" : "No");
+        }
+
+        private void ClearThemeStylePreview()
+        {
+            pnlGroupColourPreview.BackColor =
+                SystemColors.Control;
+
+            lblGroupColourValue.Text =
+                "(no group selected)";
+
+            lblThemeStyleStatus.Text =
+                "Theme style not loaded.";
+        }
+
+        private static bool TryParseThemeColour(
+            string colourValue,
+            out Color colour)
+        {
+            colour =
+                SystemColors.Control;
+
+            if (string.IsNullOrWhiteSpace(
+                colourValue))
+            {
+                return false;
+            }
+
+            string normalizedValue =
+                colourValue.Trim();
+
+            try
+            {
+                if (normalizedValue.StartsWith(
+                    "#",
+                    StringComparison.Ordinal) &&
+                    normalizedValue.Length == 9)
+                {
+                    int alpha =
+                        Convert.ToInt32(
+                            normalizedValue.Substring(1, 2),
+                            16);
+
+                    int red =
+                        Convert.ToInt32(
+                            normalizedValue.Substring(3, 2),
+                            16);
+
+                    int green =
+                        Convert.ToInt32(
+                            normalizedValue.Substring(5, 2),
+                            16);
+
+                    int blue =
+                        Convert.ToInt32(
+                            normalizedValue.Substring(7, 2),
+                            16);
+
+                    colour =
+                        Color.FromArgb(
+                            alpha,
+                            red,
+                            green,
+                            blue);
+
+                    return true;
+                }
+
+                colour =
+                    ColorTranslator.FromHtml(
+                        normalizedValue);
+
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
         private HighLightParameter CreatePreviewParameter()
         {
             return new HighLightParameter
@@ -862,6 +1086,8 @@ namespace NoteHighlightAddin
             }
 
             _groupEditorController.ChangeSelectedGroupId();
+
+            RefreshSelectedThemeStyle();
         }
 
         private void btnEditGroupRegex_Click(
@@ -1148,7 +1374,6 @@ namespace NoteHighlightAddin
             NoteHighlightForm.Properties.Settings.Default.Save();
         }
 
-
         protected override void OnFormClosed(FormClosedEventArgs e)
         {
             _languageEditor.ConfigurationChanged -=
@@ -1192,6 +1417,8 @@ namespace NoteHighlightAddin
 
             _languageRibbonController.RefreshLanguageList();
 
+            LoadActiveTheme();
+
             _previousLanguageIndex =
                 lbxLanguages.SelectedIndex;
 
@@ -1226,6 +1453,8 @@ namespace NoteHighlightAddin
             EventArgs e)
         {
             _groupSelectionController.RefreshSelection();
+
+            RefreshSelectedThemeStyle();
 
             RequestPreviewRefresh();
         }
@@ -1300,6 +1529,11 @@ namespace NoteHighlightAddin
             object sender,
             EventArgs e)
         {
+            if (_isRefreshingThemeStyle)
+            {
+                return;
+            }
+
             _groupDetailsController.ApplyChanges();
         }
 

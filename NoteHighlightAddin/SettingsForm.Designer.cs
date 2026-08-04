@@ -56,6 +56,9 @@ namespace NoteHighlightAddin
             this.lblGroupId = new System.Windows.Forms.Label();
             this.lblGroupColour = new System.Windows.Forms.Label();
             this.cmbGroupColour = new System.Windows.Forms.ComboBox();
+            this.pnlGroupColourPreview = new System.Windows.Forms.Panel();
+            this.lblGroupColourValue = new System.Windows.Forms.Label();
+            this.lblThemeStyleStatus = new System.Windows.Forms.Label();
             this.grpPreview = new System.Windows.Forms.GroupBox();
             this.pnlPreview = new System.Windows.Forms.Panel();
             this.lblPreviewStatus = new System.Windows.Forms.Label();
@@ -199,7 +202,7 @@ namespace NoteHighlightAddin
             // chkGroupVisible
             // 
             this.chkGroupVisible.AutoSize = true;
-            this.chkGroupVisible.Location = new System.Drawing.Point(405, 248);
+            this.chkGroupVisible.Location = new System.Drawing.Point(405, 279);
             this.chkGroupVisible.Name = "chkGroupVisible";
             this.chkGroupVisible.Size = new System.Drawing.Size(56, 17);
             this.chkGroupVisible.TabIndex = 15;
@@ -210,7 +213,7 @@ namespace NoteHighlightAddin
             // chkGroupBold
             // 
             this.chkGroupBold.AutoSize = true;
-            this.chkGroupBold.Location = new System.Drawing.Point(486, 248);
+            this.chkGroupBold.Location = new System.Drawing.Point(466, 279);
             this.chkGroupBold.Name = "chkGroupBold";
             this.chkGroupBold.Size = new System.Drawing.Size(47, 17);
             this.chkGroupBold.TabIndex = 16;
@@ -221,7 +224,7 @@ namespace NoteHighlightAddin
             // chkGroupItalic
             // 
             this.chkGroupItalic.AutoSize = true;
-            this.chkGroupItalic.Location = new System.Drawing.Point(405, 271);
+            this.chkGroupItalic.Location = new System.Drawing.Point(520, 279);
             this.chkGroupItalic.Name = "chkGroupItalic";
             this.chkGroupItalic.Size = new System.Drawing.Size(48, 17);
             this.chkGroupItalic.TabIndex = 17;
@@ -288,10 +291,11 @@ namespace NoteHighlightAddin
             this.lblGroupColour.Name = "lblGroupColour";
             this.lblGroupColour.Size = new System.Drawing.Size(40, 13);
             this.lblGroupColour.TabIndex = 25;
-            this.lblGroupColour.Text = "Colour:";
+            this.lblGroupColour.Text = "Style Slot:";
             // 
             // cmbGroupColour
             // 
+            this.cmbGroupColour.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.cmbGroupColour.Enabled = false;
             this.cmbGroupColour.FormattingEnabled = true;
             this.cmbGroupColour.Items.AddRange(new object[] {
@@ -305,12 +309,37 @@ namespace NoteHighlightAddin
             this.cmbGroupColour.Name = "cmbGroupColour";
             this.cmbGroupColour.Size = new System.Drawing.Size(145, 21);
             this.cmbGroupColour.TabIndex = 26;
-            this.cmbGroupColour.TextChanged += new System.EventHandler(this.cmbGroupColour_TextChanged);
+            // 
+            // pnlGroupColourPreview
+            // 
+            this.pnlGroupColourPreview.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.pnlGroupColourPreview.Location = new System.Drawing.Point(405, 239);
+            this.pnlGroupColourPreview.Name = "pnlGroupColourPreview";
+            this.pnlGroupColourPreview.Size = new System.Drawing.Size(48, 25);
+            this.pnlGroupColourPreview.TabIndex = 27;
+            // 
+            // lblGroupColourValue
+            // 
+            this.lblGroupColourValue.AutoSize = true;
+            this.lblGroupColourValue.Location = new System.Drawing.Point(461, 245);
+            this.lblGroupColourValue.Name = "lblGroupColourValue";
+            this.lblGroupColourValue.Size = new System.Drawing.Size(101, 13);
+            this.lblGroupColourValue.TabIndex = 28;
+            this.lblGroupColourValue.Text = "(no group selected)";
+            // 
+            // lblThemeStyleStatus
+            // 
+            this.lblThemeStyleStatus.AutoSize = false;
+            this.lblThemeStyleStatus.Location = new System.Drawing.Point(405, 265);
+            this.lblThemeStyleStatus.Name = "lblThemeStyleStatus";
+            this.lblThemeStyleStatus.Size = new System.Drawing.Size(170, 32);
+            this.lblThemeStyleStatus.TabIndex = 29;
+            this.lblThemeStyleStatus.Text = "Theme style not loaded.";
             // 
             // grpPreview
             // 
-            this.grpPreview.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
+            this.grpPreview.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
+            | System.Windows.Forms.AnchorStyles.Left)
             | System.Windows.Forms.AnchorStyles.Right)));
             this.grpPreview.Controls.Add(this.pnlPreview);
             this.grpPreview.Controls.Add(this.lblPreviewStatus);
@@ -323,8 +352,8 @@ namespace NoteHighlightAddin
             // 
             // pnlPreview
             // 
-            this.pnlPreview.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
+            this.pnlPreview.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
+            | System.Windows.Forms.AnchorStyles.Left)
             | System.Windows.Forms.AnchorStyles.Right)));
             this.pnlPreview.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.pnlPreview.Location = new System.Drawing.Point(12, 48);
@@ -357,6 +386,9 @@ namespace NoteHighlightAddin
             this.ClientSize = new System.Drawing.Size(760, 585);
             this.Controls.Add(this.btnSaveLanguage);
             this.Controls.Add(this.grpPreview);
+            this.Controls.Add(this.lblThemeStyleStatus);
+            this.Controls.Add(this.lblGroupColourValue);
+            this.Controls.Add(this.pnlGroupColourPreview);
             this.Controls.Add(this.cmbGroupColour);
             this.Controls.Add(this.lblGroupColour);
             this.Controls.Add(this.lblGroupId);
@@ -419,6 +451,9 @@ namespace NoteHighlightAddin
         private Label lblGroupId;
         private Label lblGroupColour;
         private ComboBox cmbGroupColour;
+        private Panel pnlGroupColourPreview;
+        private Label lblGroupColourValue;
+        private Label lblThemeStyleStatus;
         private System.Windows.Forms.GroupBox grpPreview;
         private System.Windows.Forms.Panel pnlPreview;
         private System.Windows.Forms.Label lblPreviewStatus;
