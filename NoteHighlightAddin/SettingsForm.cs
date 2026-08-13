@@ -38,7 +38,9 @@ namespace NoteHighlightAddin
         private readonly IPreviewHtmlService _previewHtmlService;
         private readonly IPreviewSampleCodeService _previewSampleCodeService;
         private readonly IHighlightThemeReader _themeReader;
+        private readonly IHighlightThemeSerializer _themeSerializer;
         private HighlightTheme _activeTheme;
+        private bool _hasUnsavedThemeChanges;
         private bool _isRefreshingThemeStyle;
         private readonly Timer _previewRefreshTimer;
         private bool _isGeneratingPreview;
@@ -80,6 +82,9 @@ namespace NoteHighlightAddin
             _themeReader =
                 new HighlightThemeReader();
 
+            _themeSerializer =
+                new HighlightThemeSerializer();
+
             _previewRefreshTimer =
                 new Timer
                 {
@@ -118,6 +123,30 @@ namespace NoteHighlightAddin
 
             txtGroupDescription.Leave += txtGroupDescription_Leave;
 
+            btnChangeThemeColour.Click -=
+                btnChangeThemeColour_Click;
+
+            btnChangeThemeColour.Click +=
+                btnChangeThemeColour_Click;
+
+            btnSaveTheme.Click -=
+                btnSaveTheme_Click;
+
+            btnSaveTheme.Click +=
+                btnSaveTheme_Click;
+
+            chkThemeBold.CheckedChanged -=
+                chkThemeBold_CheckedChanged;
+
+            chkThemeBold.CheckedChanged +=
+                chkThemeBold_CheckedChanged;
+
+            chkThemeItalic.CheckedChanged -=
+                chkThemeItalic_CheckedChanged;
+
+            chkThemeItalic.CheckedChanged +=
+                chkThemeItalic_CheckedChanged;
+
             InitializeGroupManagementControls();
 
             KeyPreview = true;
@@ -144,10 +173,6 @@ namespace NoteHighlightAddin
                     _languageEditor,
                     txtGroupName,
                     txtGroupDescription,
-                    chkGroupVisible,
-                    chkGroupBold,
-                    chkGroupItalic,
-                    cmbGroupColour,
                     nudGroupId,
                     () => _groupSelectionController.RefreshSelectedListItem());
 
@@ -324,6 +349,12 @@ namespace NoteHighlightAddin
                 return;
             }
 
+            if (!ConfirmPendingThemeChanges())
+            {
+                e.Cancel = true;
+                return;
+            }
+
             _isFormClosingConfirmed =
                 true;
         }
@@ -495,6 +526,9 @@ namespace NoteHighlightAddin
                 return;
             }
 
+            string previewThemePath =
+                null;
+
             try
             {
                 if (!_languageEditor.HasConfiguration)
@@ -529,6 +563,26 @@ namespace NoteHighlightAddin
                 HighLightParameter parameter =
                     CreatePreviewParameter();
 
+                if (_activeTheme != null)
+                {
+                    string previewThemeName =
+                        "notehighlight_theme_preview_"
+                        + Guid.NewGuid().ToString(
+                            "N");
+
+                    previewThemePath =
+                        Path.Combine(
+                            PathManager.ThemesFolder,
+                            previewThemeName + ".theme");
+
+                    _themeSerializer.Serialize(
+                        _activeTheme,
+                        previewThemePath);
+
+                    parameter.HighLightStyle =
+                        previewThemeName;
+                }
+
                 string htmlPath =
                     _previewHtmlService.GeneratePreviewHtml(
                         _languageEditor.Configuration,
@@ -560,6 +614,9 @@ namespace NoteHighlightAddin
             }
             finally
             {
+                DeletePreviewThemeFile(
+                    previewThemePath);
+
                 _isGeneratingPreview =
                     false;
 
@@ -630,6 +687,11 @@ namespace NoteHighlightAddin
                     _themeReader.Read(
                         themePath);
 
+                _hasUnsavedThemeChanges =
+                    false;
+
+                UpdateSaveThemeButtonState();
+
                 RefreshSelectedThemeStyle();
             }
             catch (Exception exception)
@@ -661,35 +723,18 @@ namespace NoteHighlightAddin
                 selectedGroup.Id +
                 "]";
 
-            string comboStyleName =
+            string displayStyleSlotName =
                 "Keywords" +
                 selectedGroup.Id;
 
-            try
-            {
-                _isRefreshingThemeStyle =
-                    true;
+            lblThemeGroupName.Text =
+                string.IsNullOrWhiteSpace(
+                    selectedGroup.DisplayName)
+                    ? "Group " + selectedGroup.Id
+                    : selectedGroup.DisplayName;
 
-                if (!string.Equals(
-                    cmbGroupColour.Text,
-                    comboStyleName,
-                    StringComparison.OrdinalIgnoreCase))
-                {
-                    cmbGroupColour.SelectedItem =
-                        comboStyleName;
-
-                    if (cmbGroupColour.SelectedIndex < 0)
-                    {
-                        cmbGroupColour.Text =
-                            comboStyleName;
-                    }
-                }
-            }
-            finally
-            {
-                _isRefreshingThemeStyle =
-                    false;
-            }
+            lblThemeStyleSlot.Text =
+                displayStyleSlotName;
 
             if (_activeTheme == null)
             {
@@ -701,6 +746,12 @@ namespace NoteHighlightAddin
 
                 lblThemeStyleStatus.Text =
                     styleSlotName;
+
+                btnChangeThemeColour.Enabled =
+                    false;
+
+                SetThemeStyleEditorState(
+                    null);
 
                 return;
             }
@@ -723,8 +774,20 @@ namespace NoteHighlightAddin
                     " | " +
                     styleSlotName;
 
+                btnChangeThemeColour.Enabled =
+                    false;
+
+                SetThemeStyleEditorState(
+                    null);
+
                 return;
             }
+
+            btnChangeThemeColour.Enabled =
+                true;
+
+            SetThemeStyleEditorState(
+                style);
 
             Color parsedColour;
 
@@ -746,12 +809,7 @@ namespace NoteHighlightAddin
 
             lblThemeStyleStatus.Text =
                 "Theme: " +
-                _activeTheme.Name +
-                Environment.NewLine +
-                "Bold: " +
-                (style.Bold ? "Yes" : "No") +
-                " | Italic: " +
-                (style.Italic ? "Yes" : "No");
+                _activeTheme.Name;
         }
 
         private void ClearThemeStylePreview()
@@ -764,7 +822,376 @@ namespace NoteHighlightAddin
 
             lblThemeStyleStatus.Text =
                 "Theme style not loaded.";
+
+            lblThemeGroupName.Text =
+                "(no group selected)";
+
+            lblThemeStyleSlot.Text =
+                "-";
+
+            btnChangeThemeColour.Enabled =
+                false;
+
+            SetThemeStyleEditorState(
+                null);
         }
+
+        private void SetThemeStyleEditorState(
+            ThemeStyle style)
+        {
+            try
+            {
+                _isRefreshingThemeStyle =
+                    true;
+
+                bool hasStyle =
+                    style != null;
+
+                chkThemeBold.Enabled =
+                    hasStyle;
+
+                chkThemeItalic.Enabled =
+                    hasStyle;
+
+                chkThemeBold.Checked =
+                    hasStyle &&
+                    style.Bold;
+
+                chkThemeItalic.Checked =
+                    hasStyle &&
+                    style.Italic;
+            }
+            finally
+            {
+                _isRefreshingThemeStyle =
+                    false;
+            }
+        }
+
+        private void chkThemeBold_CheckedChanged(
+            object sender,
+            EventArgs e)
+        {
+            if (_isRefreshingThemeStyle)
+            {
+                return;
+            }
+
+            ApplyThemeFontStyleChanges();
+        }
+
+        private void chkThemeItalic_CheckedChanged(
+            object sender,
+            EventArgs e)
+        {
+            if (_isRefreshingThemeStyle)
+            {
+                return;
+            }
+
+            ApplyThemeFontStyleChanges();
+        }
+
+        private void ApplyThemeFontStyleChanges()
+        {
+            if (_activeTheme == null)
+            {
+                return;
+            }
+
+            KeywordGroupConfiguration selectedGroup =
+                _languageEditor.SelectedGroup;
+
+            if (selectedGroup == null)
+            {
+                return;
+            }
+
+            ThemeStyle style =
+                _activeTheme.GetKeywordStyle(
+                    selectedGroup.Id);
+
+            if (style == null)
+            {
+                return;
+            }
+
+            bool newBold =
+                chkThemeBold.Checked;
+
+            bool newItalic =
+                chkThemeItalic.Checked;
+
+            if (style.Bold == newBold &&
+                style.Italic == newItalic)
+            {
+                return;
+            }
+
+            style.Bold =
+                newBold;
+
+            style.Italic =
+                newItalic;
+
+            _hasUnsavedThemeChanges =
+                true;
+
+            UpdateSaveThemeButtonState();
+
+            RefreshSelectedThemeStyle();
+
+            RequestPreviewRefresh();
+        }
+
+
+        private void btnChangeThemeColour_Click(
+            object sender,
+            EventArgs e)
+        {
+            if (_activeTheme == null)
+            {
+                return;
+            }
+
+            KeywordGroupConfiguration selectedGroup =
+                _languageEditor.SelectedGroup;
+
+            if (selectedGroup == null)
+            {
+                return;
+            }
+
+            ThemeStyle style =
+                _activeTheme.GetKeywordStyle(
+                    selectedGroup.Id);
+
+            if (style == null)
+            {
+                return;
+            }
+
+            Color currentColour;
+
+            using (var colourDialog =
+                new ColorDialog())
+            {
+                colourDialog.AnyColor =
+                    true;
+
+                colourDialog.FullOpen =
+                    true;
+
+                if (TryParseThemeColour(
+                    style.Colour,
+                    out currentColour))
+                {
+                    colourDialog.Color =
+                        currentColour;
+                }
+
+                if (colourDialog.ShowDialog(
+                    this) != DialogResult.OK)
+                {
+                    return;
+                }
+
+                style.Colour =
+                    ToThemeColour(
+                        colourDialog.Color);
+
+                // A direct edit should affect only this style.
+                // If the original colour came from a shared variable,
+                // convert this style to a literal colour instead of
+                // changing the shared variable.
+                style.ColourReference =
+                    null;
+            }
+
+            _hasUnsavedThemeChanges =
+                true;
+
+            UpdateSaveThemeButtonState();
+
+            RefreshSelectedThemeStyle();
+
+            RequestPreviewRefresh();
+        }
+
+        private void btnSaveTheme_Click(
+            object sender,
+            EventArgs e)
+        {
+            if (!TrySaveCurrentTheme())
+            {
+                return;
+            }
+
+            lblThemeStyleStatus.Text =
+                "Theme: "
+                + _activeTheme.Name;
+        }
+
+        private bool TrySaveCurrentTheme()
+        {
+            if (_activeTheme == null)
+            {
+                return false;
+            }
+
+            if (!_hasUnsavedThemeChanges)
+            {
+                return true;
+            }
+
+            string themePath =
+                Path.Combine(
+                    PathManager.ThemesFolder,
+                    _activeTheme.Name + ".theme");
+
+            try
+            {
+                _themeSerializer.Serialize(
+                    _activeTheme,
+                    themePath);
+
+                _hasUnsavedThemeChanges =
+                    false;
+
+                UpdateSaveThemeButtonState();
+
+                return true;
+            }
+            catch (UnauthorizedAccessException exception)
+            {
+                MessageBox.Show(
+                    this,
+                    "The theme file could not be saved because access was denied."
+                    + Environment.NewLine
+                    + Environment.NewLine
+                    + exception.Message,
+                    "Save Theme",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+
+                return false;
+            }
+            catch (IOException exception)
+            {
+                MessageBox.Show(
+                    this,
+                    "An error occurred while writing the theme file."
+                    + Environment.NewLine
+                    + Environment.NewLine
+                    + exception.Message,
+                    "Save Theme",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+
+                return false;
+            }
+            catch (Exception exception)
+            {
+                MessageBox.Show(
+                    this,
+                    "The theme could not be saved."
+                    + Environment.NewLine
+                    + Environment.NewLine
+                    + exception.Message,
+                    "Save Theme",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+
+                return false;
+            }
+        }
+
+        private bool ConfirmPendingThemeChanges()
+        {
+            if (_activeTheme == null ||
+                !_hasUnsavedThemeChanges)
+            {
+                return true;
+            }
+
+            string themeName =
+                string.IsNullOrWhiteSpace(
+                    _activeTheme.Name)
+                    ? "the current theme"
+                    : _activeTheme.Name;
+
+            DialogResult result =
+                MessageBox.Show(
+                    this,
+                    "Save changes to theme "
+                    + themeName
+                    + "?",
+                    "Unsaved Theme Changes",
+                    MessageBoxButtons.YesNoCancel,
+                    MessageBoxIcon.Warning,
+                    MessageBoxDefaultButton.Button1);
+
+            if (result == DialogResult.Cancel)
+            {
+                return false;
+            }
+
+            if (result == DialogResult.No)
+            {
+                return true;
+            }
+
+            return TrySaveCurrentTheme();
+        }
+
+        private void UpdateSaveThemeButtonState()
+        {
+            if (btnSaveTheme == null)
+            {
+                return;
+            }
+
+            btnSaveTheme.Enabled =
+                _activeTheme != null &&
+                _hasUnsavedThemeChanges;
+        }
+
+
+        private static string ToThemeColour(
+            Color colour)
+        {
+            return string.Format(
+                "#{0:X2}{1:X2}{2:X2}",
+                colour.R,
+                colour.G,
+                colour.B);
+        }
+
+        private static void DeletePreviewThemeFile(
+            string filePath)
+        {
+            if (string.IsNullOrWhiteSpace(
+                filePath))
+            {
+                return;
+            }
+
+            try
+            {
+                if (File.Exists(
+                    filePath))
+                {
+                    File.Delete(
+                        filePath);
+                }
+            }
+            catch
+            {
+                // Preview cleanup must never prevent the form
+                // from continuing to work.
+            }
+        }
+
 
         private static bool TryParseThemeColour(
             string colourValue,
@@ -1490,12 +1917,6 @@ namespace NoteHighlightAddin
             // Priority is managed automatically by Move Up / Move Down.
         }
 
-        private void chkGroupVisible_CheckedChanged(
-            object sender,
-            EventArgs e)
-        {
-            _groupDetailsController.ApplyChanges();
-        }
 
         // adding events for name update 
 
@@ -1511,31 +1932,8 @@ namespace NoteHighlightAddin
             _groupSelectionController.RefreshSelectedListItem();
         }
 
-        private void chkGroupBold_CheckedChanged(
-            object sender,
-            EventArgs e)
-        {
-            _groupDetailsController.ApplyChanges();
-        }
 
-        private void chkGroupItalic_CheckedChanged(
-            object sender,
-            EventArgs e)
-        {
-            _groupDetailsController.ApplyChanges();
-        }
 
-        private void cmbGroupColour_TextChanged(
-            object sender,
-            EventArgs e)
-        {
-            if (_isRefreshingThemeStyle)
-            {
-                return;
-            }
-
-            _groupDetailsController.ApplyChanges();
-        }
 
         private void btnAddGroupWord_Click(
             object sender,

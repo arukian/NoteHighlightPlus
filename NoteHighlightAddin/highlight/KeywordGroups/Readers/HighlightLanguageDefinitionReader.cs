@@ -6,26 +6,41 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 
+
 namespace NoteHighlightAddin.Highlighting.KeywordGroups.Readers
 {
-    public class HighlightLanguageDefinitionReader
+    /// <summary>
+    /// Reads highlight.exe .lang files into the structural
+    /// HighlightLanguageDefinition model.
+    ///
+    /// The parser is Lua-aware enough to ignore braces that appear inside
+    /// quoted strings, Lua long-bracket strings and Lua comments.
+    /// </summary>
+    public sealed class HighlightLanguageDefinitionReader
         : ILanguageDefinitionReader
     {
         public HighlightLanguageDefinition Read(
             string filePath)
         {
-            ValidateFilePath(
-                filePath);
+            if (string.IsNullOrWhiteSpace(
+                filePath))
+            {
+                throw new ArgumentException(
+                    "The language definition path cannot be empty.",
+                    nameof(filePath));
+            }
+
+            if (!File.Exists(
+                filePath))
+            {
+                throw new FileNotFoundException(
+                    "The language definition file was not found.",
+                    filePath);
+            }
 
             string content =
-                File.ReadAllText(filePath);
-
-            string keywordsContent =
-                ExtractKeywordsContent(content);
-
-            List<string> groupBlocks =
-                ExtractTopLevelGroupBlocks(
-                    keywordsContent);
+                File.ReadAllText(
+                    filePath);
 
             var definition =
                 new HighlightLanguageDefinition
@@ -35,56 +50,24 @@ namespace NoteHighlightAddin.Highlighting.KeywordGroups.Readers
                             filePath),
 
                     Description =
-                        ReadStringProperty(
-                            content,
-                            "Description"),
+                        ReadDescription(
+                            content)
+                        ?? Path.GetFileNameWithoutExtension(
+                            filePath),
 
                     CaseSensitive =
-                        ReadBooleanProperty(
-                            content,
-                            "CaseSensitive") ?? false
+                        ReadCaseSensitive(
+                            content)
                 };
 
-            foreach (string extension in ReadStringListProperty(
-                content,
-                "Extensions"))
+            foreach (string extension
+                in ReadExtensions(
+                    content))
             {
-                AddUniqueValue(
-                    definition.Extensions,
+                definition.Extensions.Add(
                     extension);
             }
 
-            foreach (string groupBlock in groupBlocks)
-            {
-                ReadGroup(
-                    definition,
-                    groupBlock);
-            }
-
-            return definition;
-        }
-
-        private static void ValidateFilePath(
-            string filePath)
-        {
-            if (string.IsNullOrWhiteSpace(filePath))
-            {
-                throw new ArgumentException(
-                    "The language definition path cannot be empty.",
-                    nameof(filePath));
-            }
-
-            if (!File.Exists(filePath))
-            {
-                throw new FileNotFoundException(
-                    "The language definition file was not found.",
-                    filePath);
-            }
-        }
-
-        private static string ExtractKeywordsContent(
-            string content)
-        {
             string keywordsContent =
                 ExtractNamedSection(
                     content,
@@ -97,8 +80,185 @@ namespace NoteHighlightAddin.Highlighting.KeywordGroups.Readers
                     "a valid Keywords section.");
             }
 
-            return keywordsContent;
+            List<string> groupBlocks =
+                ExtractTopLevelGroupBlocks(
+                    keywordsContent);
+
+            foreach (string groupBlock
+                in groupBlocks)
+            {
+                ReadGroup(
+                    definition,
+                    groupBlock);
+            }
+
+            return definition;
         }
+
+
+        private static void ReadGroup(
+            HighlightLanguageDefinition definition,
+            string groupBlock)
+        {
+            int id =
+                ReadGroupId(
+                    groupBlock);
+
+            HighlightKeywordGroup group =
+                definition.Groups.FirstOrDefault(
+                    item => item.Id == id);
+
+            if (group == null)
+            {
+                group =
+                    new HighlightKeywordGroup
+                    {
+                        Id = id
+                    };
+
+                definition.Groups.Add(
+                    group);
+            }
+
+            foreach (string word
+                in ReadWords(
+                    groupBlock))
+            {
+                if (!group.Words.Contains(
+                    word,
+                    StringComparer.Ordinal))
+                {
+                    group.Words.Add(
+                        word);
+                }
+            }
+
+            string regex =
+                ReadRegex(
+                    groupBlock);
+
+            if (!string.IsNullOrWhiteSpace(
+                regex) &&
+                !group.Regex.Contains(
+                    regex,
+                    StringComparer.Ordinal))
+            {
+                group.Regex.Add(
+                    regex);
+            }
+        }
+
+
+        private static string ReadDescription(
+            string content)
+        {
+            Match match =
+                Regex.Match(
+                    content,
+                    @"\bDescription\s*=\s*[""'](?<value>[^""']*)[""']",
+                    RegexOptions.IgnoreCase);
+
+            return match.Success
+                ? match.Groups["value"].Value
+                : null;
+        }
+
+
+        /// <summary>
+        /// highlight language files exist in more than one generation.
+        ///
+        /// Newer files may use CaseSensitive=true/false.
+        /// Many stock highlight files use IgnoreCase=true/false.
+        ///
+        /// IgnoreCase=false means the language IS case-sensitive.
+        /// </summary>
+        private static bool ReadCaseSensitive(
+            string content)
+        {
+            bool? caseSensitive =
+                ReadBooleanProperty(
+                    content,
+                    "CaseSensitive");
+
+            if (caseSensitive.HasValue)
+            {
+                return caseSensitive.Value;
+            }
+
+            bool? ignoreCase =
+                ReadBooleanProperty(
+                    content,
+                    "IgnoreCase");
+
+            if (ignoreCase.HasValue)
+            {
+                return !ignoreCase.Value;
+            }
+
+            return true;
+        }
+
+
+        private static bool? ReadBooleanProperty(
+            string content,
+            string propertyName)
+        {
+            Match match =
+                Regex.Match(
+                    content,
+                    @"\b" +
+                    Regex.Escape(
+                        propertyName) +
+                    @"\s*=\s*(?<value>true|false)",
+                    RegexOptions.IgnoreCase);
+
+            if (!match.Success)
+            {
+                return null;
+            }
+
+            return string.Equals(
+                match.Groups["value"].Value,
+                "true",
+                StringComparison.OrdinalIgnoreCase);
+        }
+
+
+        private static IEnumerable<string> ReadExtensions(
+            string content)
+        {
+            string extensionsContent =
+                ExtractNamedSection(
+                    content,
+                    "Extensions");
+
+            if (string.IsNullOrWhiteSpace(
+                extensionsContent))
+            {
+                return Enumerable.Empty<string>();
+            }
+
+            MatchCollection matches =
+                Regex.Matches(
+                    extensionsContent,
+                    @"""(?<value>(?:\\.|[^""\\])*)""",
+                    RegexOptions.Singleline);
+
+            return matches
+                .Cast<Match>()
+                .Select(
+                    match =>
+                        UnescapeQuotedValue(
+                            match.Groups["value"].Value))
+                .Where(
+                    value =>
+                        !string.IsNullOrWhiteSpace(
+                            value))
+                .Distinct(
+                    StringComparer.Ordinal)
+                .ToList();
+        }
+
 
         private static string ExtractNamedSection(
             string content,
@@ -108,7 +268,8 @@ namespace NoteHighlightAddin.Highlighting.KeywordGroups.Readers
                 Regex.Match(
                     content,
                     @"\b" +
-                    Regex.Escape(sectionName) +
+                    Regex.Escape(
+                        sectionName) +
                     @"\s*=\s*\{",
                     RegexOptions.IgnoreCase);
 
@@ -137,6 +298,7 @@ namespace NoteHighlightAddin.Highlighting.KeywordGroups.Readers
                 closingBraceIndex -
                 openingBraceIndex - 1);
         }
+
 
         private static List<string> ExtractTopLevelGroupBlocks(
             string sectionContent)
@@ -180,6 +342,20 @@ namespace NoteHighlightAddin.Highlighting.KeywordGroups.Readers
                     continue;
                 }
 
+                if (TrySkipLuaComment(
+                    sectionContent,
+                    ref index))
+                {
+                    continue;
+                }
+
+                if (TrySkipLuaLongBracket(
+                    sectionContent,
+                    ref index))
+                {
+                    continue;
+                }
+
                 if (current == '"' ||
                     current == '\'')
                 {
@@ -206,12 +382,6 @@ namespace NoteHighlightAddin.Highlighting.KeywordGroups.Readers
 
                 depth--;
 
-                if (depth < 0)
-                {
-                    throw new InvalidDataException(
-                        "The section contains unbalanced braces.");
-                }
-
                 if (depth == 0 &&
                     blockStart >= 0)
                 {
@@ -221,6 +391,12 @@ namespace NoteHighlightAddin.Highlighting.KeywordGroups.Readers
                             index - blockStart + 1));
 
                     blockStart = -1;
+                }
+
+                if (depth < 0)
+                {
+                    throw new InvalidDataException(
+                        "The section contains unbalanced braces.");
                 }
             }
 
@@ -233,48 +409,6 @@ namespace NoteHighlightAddin.Highlighting.KeywordGroups.Readers
             return blocks;
         }
 
-        private static void ReadGroup(
-            HighlightLanguageDefinition definition,
-            string groupBlock)
-        {
-            int id =
-                ReadGroupId(
-                    groupBlock);
-
-            HighlightKeywordGroup group =
-                definition.Groups.FirstOrDefault(
-                    item => item.Id == id);
-
-            if (group == null)
-            {
-                group =
-                    new HighlightKeywordGroup
-                    {
-                        Id = id
-                    };
-
-                definition.Groups.Add(
-                    group);
-            }
-
-            foreach (string word in ReadWords(groupBlock))
-            {
-                AddUniqueValue(
-                    group.Words,
-                    word);
-            }
-
-            string regex =
-                ReadRegex(
-                    groupBlock);
-
-            if (!string.IsNullOrWhiteSpace(regex))
-            {
-                AddUniqueValue(
-                    group.Regex,
-                    regex);
-            }
-        }
 
         private static int ReadGroupId(
             string groupBlock)
@@ -291,127 +425,61 @@ namespace NoteHighlightAddin.Highlighting.KeywordGroups.Readers
                     "A keyword group does not contain a valid Id.");
             }
 
-            int id;
-
-            if (!int.TryParse(
-                match.Groups["id"].Value,
-                out id))
-            {
-                throw new InvalidDataException(
-                    "A keyword group contains an invalid Id.");
-            }
-
-            return id;
+            return int.Parse(
+                match.Groups["id"].Value);
         }
 
-        private static bool? ReadBooleanProperty(
-            string content,
-            string propertyName)
-        {
-            Match match =
-                Regex.Match(
-                    content,
-                    @"\b" +
-                    Regex.Escape(propertyName) +
-                    @"\s*=\s*(?<value>true|false)",
-                    RegexOptions.IgnoreCase);
-
-            if (!match.Success)
-            {
-                return null;
-            }
-
-            bool value;
-
-            if (!bool.TryParse(
-                match.Groups["value"].Value,
-                out value))
-            {
-                return null;
-            }
-
-            return value;
-        }
-
-        private static string ReadStringProperty(
-            string content,
-            string propertyName)
-        {
-            Match match =
-                Regex.Match(
-                    content,
-                    @"\b" +
-                    Regex.Escape(propertyName) +
-                    @"\s*=\s*[""'](?<value>(?:\\.|[^""'])*)[""']",
-                    RegexOptions.IgnoreCase |
-                    RegexOptions.Singleline);
-
-            if (!match.Success)
-            {
-                return null;
-            }
-
-            return UnescapeQuotedValue(
-                match.Groups["value"].Value);
-        }
-
-        private static IEnumerable<string> ReadStringListProperty(
-            string content,
-            string propertyName)
-        {
-            Match listMatch =
-                Regex.Match(
-                    content,
-                    @"\b" +
-                    Regex.Escape(propertyName) +
-                    @"\s*=\s*\{(?<content>.*?)\}",
-                    RegexOptions.IgnoreCase |
-                    RegexOptions.Singleline);
-
-            if (!listMatch.Success)
-            {
-                return Enumerable.Empty<string>();
-            }
-
-            return ReadQuotedValues(
-                listMatch.Groups["content"].Value);
-        }
 
         private static IEnumerable<string> ReadWords(
             string groupBlock)
         {
-            Match listMatch =
+            Match listStart =
                 Regex.Match(
                     groupBlock,
-                    @"\bList\s*=\s*\{(?<content>.*?)\}",
-                    RegexOptions.IgnoreCase |
-                    RegexOptions.Singleline);
+                    @"\bList\s*=\s*\{",
+                    RegexOptions.IgnoreCase);
 
-            if (!listMatch.Success)
+            if (!listStart.Success)
             {
                 return Enumerable.Empty<string>();
             }
 
-            return ReadQuotedValues(
-                listMatch.Groups["content"].Value);
-        }
+            int openingBraceIndex =
+                groupBlock.IndexOf(
+                    '{',
+                    listStart.Index);
 
-        private static IEnumerable<string> ReadQuotedValues(
-            string content)
-        {
-            MatchCollection matches =
+            if (openingBraceIndex < 0)
+            {
+                return Enumerable.Empty<string>();
+            }
+
+            int closingBraceIndex =
+                FindMatchingBrace(
+                    groupBlock,
+                    openingBraceIndex);
+
+            string listContent =
+                groupBlock.Substring(
+                    openingBraceIndex + 1,
+                    closingBraceIndex -
+                    openingBraceIndex - 1);
+
+            MatchCollection wordMatches =
                 Regex.Matches(
-                    content,
-                    @"[""'](?<value>(?:\\.|[^""'\\])*)[""']",
+                    listContent,
+                    @"""(?<word>(?:\\.|[^""\\])*)""",
                     RegexOptions.Singleline);
 
-            return matches
+            return wordMatches
                 .Cast<Match>()
                 .Select(
-                    match => UnescapeQuotedValue(
-                        match.Groups["value"].Value))
+                    match =>
+                        UnescapeQuotedValue(
+                            match.Groups["word"].Value))
                 .ToList();
         }
+
 
         private static string ReadRegex(
             string groupBlock)
@@ -432,7 +500,8 @@ namespace NoteHighlightAddin.Highlighting.KeywordGroups.Readers
                 assignmentMatch.Length;
 
             while (valueStart < groupBlock.Length &&
-                   char.IsWhiteSpace(groupBlock[valueStart]))
+                   char.IsWhiteSpace(
+                       groupBlock[valueStart]))
             {
                 valueStart++;
             }
@@ -442,35 +511,23 @@ namespace NoteHighlightAddin.Highlighting.KeywordGroups.Readers
                 valueStart);
         }
 
+
         private static string ReadLongBracketValue(
             string content,
             int startIndex)
         {
-            if (startIndex >= content.Length ||
-                content[startIndex] != '[')
+            int openingContentIndex;
+            int equalsCount;
+
+            if (!TryReadLuaLongBracketOpening(
+                content,
+                startIndex,
+                out openingContentIndex,
+                out equalsCount))
             {
                 throw new InvalidDataException(
                     "A Regex value does not use a supported " +
                     "Lua long-bracket expression.");
-            }
-
-            int index =
-                startIndex + 1;
-
-            int equalsCount = 0;
-
-            while (index < content.Length &&
-                   content[index] == '=')
-            {
-                equalsCount++;
-                index++;
-            }
-
-            if (index >= content.Length ||
-                content[index] != '[')
-            {
-                throw new InvalidDataException(
-                    "A Regex value has an invalid opening delimiter.");
             }
 
             string closingDelimiter =
@@ -480,13 +537,10 @@ namespace NoteHighlightAddin.Highlighting.KeywordGroups.Readers
                     equalsCount) +
                 "]";
 
-            int valueStart =
-                index + 1;
-
             int valueEnd =
                 content.IndexOf(
                     closingDelimiter,
-                    valueStart,
+                    openingContentIndex,
                     StringComparison.Ordinal);
 
             if (valueEnd < 0)
@@ -496,30 +550,11 @@ namespace NoteHighlightAddin.Highlighting.KeywordGroups.Readers
             }
 
             return content.Substring(
-                valueStart,
-                valueEnd - valueStart);
+                openingContentIndex,
+                valueEnd -
+                openingContentIndex);
         }
 
-        private static void AddUniqueValue(
-            IList<string> values,
-            string value)
-        {
-            if (values == null ||
-                string.IsNullOrWhiteSpace(value))
-            {
-                return;
-            }
-
-            if (values.Contains(
-                value,
-                StringComparer.Ordinal))
-            {
-                return;
-            }
-
-            values.Add(
-                value);
-        }
 
         private static int FindMatchingBrace(
             string content,
@@ -560,6 +595,20 @@ namespace NoteHighlightAddin.Highlighting.KeywordGroups.Readers
                     continue;
                 }
 
+                if (TrySkipLuaComment(
+                    content,
+                    ref index))
+                {
+                    continue;
+                }
+
+                if (TrySkipLuaLongBracket(
+                    content,
+                    ref index))
+                {
+                    continue;
+                }
+
                 if (current == '"' ||
                     current == '\'')
                 {
@@ -585,16 +634,138 @@ namespace NoteHighlightAddin.Highlighting.KeywordGroups.Readers
                 {
                     return index;
                 }
-
-                if (depth < 0)
-                {
-                    break;
-                }
             }
 
             throw new InvalidDataException(
                 "The section has no matching closing brace.");
         }
+
+
+        private static bool TrySkipLuaLongBracket(
+            string content,
+            ref int index)
+        {
+            int valueStart;
+            int equalsCount;
+
+            if (!TryReadLuaLongBracketOpening(
+                content,
+                index,
+                out valueStart,
+                out equalsCount))
+            {
+                return false;
+            }
+
+            string closingDelimiter =
+                "]" +
+                new string(
+                    '=',
+                    equalsCount) +
+                "]";
+
+            int closingIndex =
+                content.IndexOf(
+                    closingDelimiter,
+                    valueStart,
+                    StringComparison.Ordinal);
+
+            if (closingIndex < 0)
+            {
+                throw new InvalidDataException(
+                    "A Lua long-bracket value has no closing delimiter.");
+            }
+
+            index =
+                closingIndex +
+                closingDelimiter.Length -
+                1;
+
+            return true;
+        }
+
+
+        private static bool TryReadLuaLongBracketOpening(
+            string content,
+            int startIndex,
+            out int valueStart,
+            out int equalsCount)
+        {
+            valueStart = -1;
+            equalsCount = 0;
+
+            if (startIndex < 0 ||
+                startIndex >= content.Length ||
+                content[startIndex] != '[')
+            {
+                return false;
+            }
+
+            int cursor =
+                startIndex + 1;
+
+            while (cursor < content.Length &&
+                   content[cursor] == '=')
+            {
+                equalsCount++;
+                cursor++;
+            }
+
+            if (cursor >= content.Length ||
+                content[cursor] != '[')
+            {
+                equalsCount = 0;
+                return false;
+            }
+
+            valueStart =
+                cursor + 1;
+
+            return true;
+        }
+
+
+        private static bool TrySkipLuaComment(
+            string content,
+            ref int index)
+        {
+            if (index < 0 ||
+                index + 1 >= content.Length ||
+                content[index] != '-' ||
+                content[index + 1] != '-')
+            {
+                return false;
+            }
+
+            int commentStart =
+                index + 2;
+
+            int longCommentIndex =
+                commentStart;
+
+            if (TrySkipLuaLongBracket(
+                content,
+                ref longCommentIndex))
+            {
+                index =
+                    longCommentIndex;
+
+                return true;
+            }
+
+            int lineEnd =
+                content.IndexOf(
+                    '\n',
+                    commentStart);
+
+            index =
+                lineEnd < 0
+                    ? content.Length - 1
+                    : lineEnd;
+
+            return true;
+        }
+
 
         private static string UnescapeQuotedValue(
             string value)
@@ -604,7 +775,8 @@ namespace NoteHighlightAddin.Highlighting.KeywordGroups.Readers
 
             bool escaped = false;
 
-            foreach (char current in value)
+            foreach (char current
+                in value)
             {
                 if (!escaped)
                 {
@@ -624,19 +796,19 @@ namespace NoteHighlightAddin.Highlighting.KeywordGroups.Readers
                 switch (current)
                 {
                     case '"':
-                        result.Append('"');
-                        break;
-
-                    case '\'':
-                        result.Append('\'');
+                        result.Append(
+                            '"');
                         break;
 
                     case '\\':
-                        result.Append('\\');
+                        result.Append(
+                            '\\');
                         break;
 
                     default:
-                        result.Append('\\');
+                        result.Append(
+                            '\\');
+
                         result.Append(
                             current);
                         break;
@@ -647,7 +819,8 @@ namespace NoteHighlightAddin.Highlighting.KeywordGroups.Readers
 
             if (escaped)
             {
-                result.Append('\\');
+                result.Append(
+                    '\\');
             }
 
             return result.ToString();

@@ -18,7 +18,20 @@
             set;
         }
 
+        /// <summary>
+        /// Color resuelto que utiliza la interfaz y el preview.
+        /// </summary>
         public string Colour
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Nombre de la variable usada originalmente por Colour.
+        /// Es null cuando el color fue escrito como literal.
+        /// </summary>
+        public string ColourReference
         {
             get;
             set;

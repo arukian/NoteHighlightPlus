@@ -52,6 +52,18 @@ namespace NoteHighlightAddin.Highlighting.Themes
                 RegexOptions.Compiled |
                 RegexOptions.IgnoreCase);
 
+
+        private static readonly Regex QuotedValuePattern =
+            new Regex(
+                @"[""'](?<value>[^""']*)[""']",
+                RegexOptions.Compiled);
+
+        private static readonly Regex SemanticTokenEntryPattern =
+            new Regex(
+                @"\{\s*Type\s*=\s*[""'](?<type>[^""']+)[""']\s*,\s*Style\s*=\s*(?<style>Keywords\s*\[\s*\d+\s*\]|[A-Za-z_]\w*)\s*\}",
+                RegexOptions.Compiled |
+                RegexOptions.IgnoreCase);
+
         public HighlightTheme Read(
             string filePath)
         {
@@ -82,6 +94,10 @@ namespace NoteHighlightAddin.Highlighting.Themes
                             normalizedContent)
                 };
 
+            CopyVariablesToTheme(
+                variables,
+                theme);
+
             ReadNamedStyles(
                 normalizedContent,
                 variables,
@@ -94,6 +110,14 @@ namespace NoteHighlightAddin.Highlighting.Themes
             ReadKeywordStyles(
                 normalizedContent,
                 variables,
+                theme);
+
+            ReadCategories(
+                normalizedContent,
+                theme);
+
+            ReadSemanticTokenTypes(
+                normalizedContent,
                 theme);
 
             return theme;
@@ -120,6 +144,26 @@ namespace NoteHighlightAddin.Highlighting.Themes
             }
 
             return variables;
+        }
+
+        private static void CopyVariablesToTheme(
+            IDictionary<string, string> variables,
+            HighlightTheme theme)
+        {
+            foreach (KeyValuePair<string, string> variable
+                in variables)
+            {
+                if (string.Equals(
+                    variable.Key,
+                    "Description",
+                    StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                theme.Variables[variable.Key] =
+                    variable.Value;
+            }
         }
 
         private static string ReadDescription(
@@ -220,6 +264,9 @@ namespace NoteHighlightAddin.Highlighting.Themes
                         continue;
                     }
 
+                    theme.StyleAliases[alias.Name] =
+                        alias.Target;
+
                     theme.Styles[alias.Name] =
                         CloneStyle(
                             alias.Name,
@@ -274,6 +321,94 @@ namespace NoteHighlightAddin.Highlighting.Themes
             }
         }
 
+        private static void ReadCategories(
+            string content,
+            HighlightTheme theme)
+        {
+            string categoriesBlock =
+                ExtractCollectionBody(
+                    content,
+                    "Categories");
+
+            if (string.IsNullOrWhiteSpace(
+                categoriesBlock))
+            {
+                return;
+            }
+
+            foreach (Match match
+                in QuotedValuePattern.Matches(
+                    categoriesBlock))
+            {
+                string value =
+                    match.Groups["value"].Value;
+
+                if (string.IsNullOrWhiteSpace(
+                    value))
+                {
+                    continue;
+                }
+
+                theme.Categories.Add(
+                    value);
+            }
+        }
+
+        private static void ReadSemanticTokenTypes(
+            string content,
+            HighlightTheme theme)
+        {
+            string semanticTokenBlock =
+                ExtractCollectionBody(
+                    content,
+                    "SemanticTokenTypes");
+
+            if (string.IsNullOrWhiteSpace(
+                semanticTokenBlock))
+            {
+                return;
+            }
+
+            foreach (Match match
+                in SemanticTokenEntryPattern.Matches(
+                    semanticTokenBlock))
+            {
+                string type =
+                    match.Groups["type"].Value;
+
+                string styleReference =
+                    NormalizeStyleReference(
+                        match.Groups["style"].Value);
+
+                theme.SemanticTokenTypes.Add(
+                    new SemanticTokenStyle
+                    {
+                        Type =
+                            type,
+
+                        StyleReference =
+                            styleReference
+                    });
+            }
+        }
+
+        private static string NormalizeStyleReference(
+            string styleReference)
+        {
+            if (string.IsNullOrWhiteSpace(
+                styleReference))
+            {
+                return styleReference;
+            }
+
+            return Regex.Replace(
+                styleReference,
+                @"Keywords\s*\[\s*(?<index>\d+)\s*\]",
+                "Keywords[${index}]",
+                RegexOptions.IgnoreCase);
+        }
+
+
         private static ThemeStyle ParseStyle(
             string name,
             string body,
@@ -302,6 +437,9 @@ namespace NoteHighlightAddin.Highlighting.Themes
                 {
                     string variableName =
                         colourMatch.Groups["variable"].Value;
+
+                    style.ColourReference =
+                        variableName;
 
                     string variableValue;
 
@@ -503,6 +641,9 @@ namespace NoteHighlightAddin.Highlighting.Themes
 
                 Colour =
                     source.Colour,
+
+                ColourReference =
+                    source.ColourReference,
 
                 Bold =
                     source.Bold,

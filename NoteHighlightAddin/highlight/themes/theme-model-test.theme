@@ -1,0 +1,19 @@
+﻿Description = "Theme Model Test"
+
+blue = "#0080C0"
+
+Default = {
+    Colour = blue,
+    Bold = true,
+    Italic = false
+}
+
+Canvas = Default
+
+Keywords = {
+    {
+        Colour = blue,
+        Bold = true,
+        Italic = false
+    }
+}

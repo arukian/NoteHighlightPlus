@@ -163,7 +163,12 @@
     <Compile Include="highlight\Preview\Services\PreviewSampleCodeService.cs" />
     <Compile Include="highlight\themes\HighlightTheme.cs" />
     <Compile Include="highlight\themes\HighlightThemeReader.cs" />
+    <Compile Include="highlight\themes\HighlightThemeSerializer.cs" />
+    <Compile Include="highlight\themes\HighlightThemeWriter.cs" />
     <Compile Include="highlight\themes\IHighlightThemeReader.cs" />
+    <Compile Include="highlight\themes\IHighlightThemeSerializer.cs" />
+    <Compile Include="highlight\themes\IHighlightThemeWriter.cs" />
+    <Compile Include="highlight\themes\SemanticTokenStyle.cs" />
     <Compile Include="highlight\themes\ThemeStyle.cs" />
     <Compile Include="HtmlFragment.cs" />
     <Compile Include="HtmlInserter.cs" />
@@ -1216,6 +1221,7 @@
     </Content>
     <None Include="App1.config" />
     <None Include="HighlightContent.snk" />
+    <None Include="highlight\themes\theme-model-test.theme" />
     <None Include="packages.config" />
     <Content Include="ribbon.xml">
       <SubType>Designer</SubType>

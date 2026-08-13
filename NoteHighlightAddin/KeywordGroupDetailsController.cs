@@ -7,17 +7,17 @@ using System.Windows.Forms;
 namespace NoteHighlightAddin
 {
     /// <summary>
-    /// Synchronizes the selected keyword group with its detail controls.
+    /// Synchronizes the selected keyword group with the controls that
+    /// belong to the language definition itself.
+    ///
+    /// Visual formatting such as colour, bold and italic is handled
+    /// separately by the theme editor.
     /// </summary>
     internal sealed class KeywordGroupDetailsController
     {
         private readonly LanguageEditorViewModel _languageEditor;
         private readonly TextBox _nameEditor;
         private readonly TextBox _descriptionEditor;
-        private readonly CheckBox _visibleEditor;
-        private readonly CheckBox _boldEditor;
-        private readonly CheckBox _italicEditor;
-        private readonly ComboBox _colourEditor;
         private readonly NumericUpDown _groupIdEditor;
         private readonly Action _refreshSelectedListItem;
 
@@ -32,10 +32,6 @@ namespace NoteHighlightAddin
             LanguageEditorViewModel languageEditor,
             TextBox nameEditor,
             TextBox descriptionEditor,
-            CheckBox visibleEditor,
-            CheckBox boldEditor,
-            CheckBox italicEditor,
-            ComboBox colourEditor,
             NumericUpDown groupIdEditor,
             Action refreshSelectedListItem)
         {
@@ -53,26 +49,6 @@ namespace NoteHighlightAddin
                 descriptionEditor
                 ?? throw new ArgumentNullException(
                     nameof(descriptionEditor));
-
-            _visibleEditor =
-                visibleEditor
-                ?? throw new ArgumentNullException(
-                    nameof(visibleEditor));
-
-            _boldEditor =
-                boldEditor
-                ?? throw new ArgumentNullException(
-                    nameof(boldEditor));
-
-            _italicEditor =
-                italicEditor
-                ?? throw new ArgumentNullException(
-                    nameof(italicEditor));
-
-            _colourEditor =
-                colourEditor
-                ?? throw new ArgumentNullException(
-                    nameof(colourEditor));
 
             _groupIdEditor =
                 groupIdEditor
@@ -120,19 +96,6 @@ namespace NoteHighlightAddin
                 _descriptionEditor.Text =
                     group.Description
                     ?? string.Empty;
-
-                _visibleEditor.Checked =
-                    group.Visible;
-
-                _boldEditor.Checked =
-                    group.Bold;
-
-                _italicEditor.Checked =
-                    group.Italic;
-
-                _colourEditor.Text =
-                    group.Colour
-                    ?? string.Empty;
             }
             finally
             {
@@ -143,7 +106,7 @@ namespace NoteHighlightAddin
 
 
         public void ApplyChanges(
-    bool refreshSelectedListItem = true)
+            bool refreshSelectedListItem = true)
         {
             if (_isLoading)
             {
@@ -165,19 +128,6 @@ namespace NoteHighlightAddin
                 GetOptionalText(
                     _descriptionEditor.Text);
 
-            group.Visible =
-                _visibleEditor.Checked;
-
-            group.Bold =
-                _boldEditor.Checked;
-
-            group.Italic =
-                _italicEditor.Checked;
-
-            group.Colour =
-                GetOptionalText(
-                    _colourEditor.Text);
-
             _languageEditor.MarkAsModified();
 
             if (refreshSelectedListItem)
@@ -196,18 +146,6 @@ namespace NoteHighlightAddin
             _descriptionEditor.Enabled =
                 enabled;
 
-            _visibleEditor.Enabled =
-                enabled;
-
-            _boldEditor.Enabled =
-                enabled;
-
-            _italicEditor.Enabled =
-                enabled;
-
-            _colourEditor.Enabled =
-                enabled;
-
             _groupIdEditor.Enabled =
                 enabled;
         }
@@ -217,21 +155,6 @@ namespace NoteHighlightAddin
         {
             _nameEditor.Clear();
             _descriptionEditor.Clear();
-
-            _visibleEditor.Checked =
-                false;
-
-            _boldEditor.Checked =
-                false;
-
-            _italicEditor.Checked =
-                false;
-
-            _colourEditor.SelectedIndex =
-                -1;
-
-            _colourEditor.Text =
-                string.Empty;
 
             _groupIdEditor.Value =
                 _groupIdEditor.Minimum;
