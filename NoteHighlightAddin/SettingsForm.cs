@@ -1,4 +1,7 @@
+using GenerateHighlightContent;
 using Infrastructure.Core;
+using Microsoft.Web.WebView2.Core;
+using Microsoft.Web.WebView2.WinForms;
 using NoteHighlightAddin.Highlighting.KeywordGroups;
 using NoteHighlightAddin.Highlighting.KeywordGroups.Services;
 using NoteHighlightAddin.Highlighting.KeywordGroups.Testing;
@@ -8,11 +11,9 @@ using NoteHighlightAddin.Highlighting.Themes;
 using System;
 using System.Drawing;
 using System.IO;
-using System.Windows.Forms;
-using Microsoft.Web.WebView2.Core;
-using Microsoft.Web.WebView2.WinForms;
+using System.Linq;
 using System.Threading.Tasks;
-using GenerateHighlightContent;
+using System.Windows.Forms;
 
 
 
@@ -40,8 +41,12 @@ namespace NoteHighlightAddin
         private readonly IHighlightThemeReader _themeReader;
         private readonly IHighlightThemeSerializer _themeSerializer;
         private HighlightTheme _activeTheme;
+        private string _activeThemeFilePath;
         private bool _hasUnsavedThemeChanges;
+        private bool _isChangingThemeSelection;
+        private int _previousThemeIndex = -1;
         private bool _isRefreshingThemeStyle;
+        private bool _isRefreshingThemeStyleTarget;
         private readonly Timer _previewRefreshTimer;
         private bool _isGeneratingPreview;
         private bool _previewRefreshPending;
@@ -49,6 +54,38 @@ namespace NoteHighlightAddin
         // Adding to protect language change 
         private bool _isChangingLanguageSelection;
         private int _previousLanguageIndex = -1;
+
+        private const string ThemePreferenceFolderName =
+            "NoteHighlightPlus";
+
+        private const string ThemePreferenceFileName =
+            "last-theme.txt";
+
+        private sealed class ThemeStyleTargetItem
+        {
+            public string DisplayName { get; set; }
+            public string TechnicalName { get; set; }
+            public int? KeywordGroupId { get; set; }
+            public string GeneralStyleName { get; set; }
+            public string AliasName { get; set; }
+            public string AliasTarget { get; set; }
+            public bool IsHeader { get; set; }
+
+            public bool IsAlias
+            {
+                get
+                {
+                    return !string.IsNullOrWhiteSpace(
+                        AliasName);
+                }
+            }
+
+            public override string ToString()
+            {
+                return DisplayName ?? string.Empty;
+            }
+        }
+
 
         public SettingsForm()
         {
@@ -84,6 +121,18 @@ namespace NoteHighlightAddin
 
             _themeSerializer =
                 new HighlightThemeSerializer();
+
+            cmbThemes.SelectedIndexChanged -=
+                cmbThemes_SelectedIndexChanged;
+
+            cmbThemes.SelectedIndexChanged +=
+                cmbThemes_SelectedIndexChanged;
+
+            cmbThemeStyleTarget.SelectedIndexChanged -=
+                cmbThemeStyleTarget_SelectedIndexChanged;
+
+            cmbThemeStyleTarget.SelectedIndexChanged +=
+                cmbThemeStyleTarget_SelectedIndexChanged;
 
             _previewRefreshTimer =
                 new Timer
@@ -134,6 +183,30 @@ namespace NoteHighlightAddin
 
             btnSaveTheme.Click +=
                 btnSaveTheme_Click;
+
+            btnNewTheme.Click -=
+                btnNewTheme_Click;
+
+            btnNewTheme.Click +=
+                btnNewTheme_Click;
+
+            btnDuplicateTheme.Click -=
+                btnDuplicateTheme_Click;
+
+            btnDuplicateTheme.Click +=
+                btnDuplicateTheme_Click;
+
+            btnRenameTheme.Click -=
+                btnRenameTheme_Click;
+
+            btnRenameTheme.Click +=
+                btnRenameTheme_Click;
+
+            btnDeleteTheme.Click -=
+                btnDeleteTheme_Click;
+
+            btnDeleteTheme.Click +=
+                btnDeleteTheme_Click;
 
             chkThemeBold.CheckedChanged -=
                 chkThemeBold_CheckedChanged;
@@ -671,26 +744,292 @@ namespace NoteHighlightAddin
             return TrySaveCurrentLanguage();
         }
 
-        private void LoadActiveTheme()
+        private void LoadAvailableThemes()
         {
-            const string activeThemeName =
-                "shinx";
+            try
+            {
+                _isChangingThemeSelection =
+                    true;
+
+                cmbThemes.Items.Clear();
+
+                if (!Directory.Exists(
+                    PathManager.ThemesFolder))
+                {
+                    Directory.CreateDirectory(
+                        PathManager.ThemesFolder);
+                }
+
+                string[] themeFiles =
+                    Directory.GetFiles(
+                        PathManager.ThemesFolder,
+                        "*.theme",
+                        SearchOption.TopDirectoryOnly);
+
+                foreach (string themeFile
+                    in themeFiles
+                        .OrderBy(
+                            path =>
+                                Path.GetFileNameWithoutExtension(
+                                    path),
+                            StringComparer.OrdinalIgnoreCase))
+                {
+                    cmbThemes.Items.Add(
+                        Path.GetFileNameWithoutExtension(
+                            themeFile));
+                }
+
+                if (cmbThemes.Items.Count == 0)
+                {
+                    _activeTheme =
+                        null;
+
+                    _activeThemeFilePath =
+                        null;
+
+                    _previousThemeIndex =
+                        -1;
+
+                    cmbThemes.Enabled =
+                        false;
+
+                    ClearThemeStylePreview();
+
+                    lblThemeStyleStatus.Text =
+                        "No .theme files were found.";
+
+                    return;
+                }
+
+                cmbThemes.Enabled =
+                    true;
+
+                string preferredTheme =
+                    ReadPreferredThemeName();
+
+                int preferredThemeIndex =
+                    FindThemeIndex(
+                        preferredTheme);
+
+                cmbThemes.SelectedIndex =
+                    preferredThemeIndex >= 0
+                        ? preferredThemeIndex
+                        : 0;
+
+                _previousThemeIndex =
+                    cmbThemes.SelectedIndex;
+            }
+            finally
+            {
+                _isChangingThemeSelection =
+                    false;
+            }
+
+            LoadSelectedTheme();
+        }
+
+
+        private int FindThemeIndex(
+            string themeName)
+        {
+            if (string.IsNullOrWhiteSpace(
+                themeName))
+            {
+                return -1;
+            }
+
+            for (int index = 0;
+                index < cmbThemes.Items.Count;
+                index++)
+            {
+                string item =
+                    cmbThemes.Items[index] as string;
+
+                if (string.Equals(
+                    item,
+                    themeName,
+                    StringComparison.OrdinalIgnoreCase))
+                {
+                    return index;
+                }
+            }
+
+            return -1;
+        }
+
+
+        private static string GetThemePreferenceFilePath()
+        {
+            string preferenceFolder =
+                Path.Combine(
+                    Environment.GetFolderPath(
+                        Environment.SpecialFolder.ApplicationData),
+                    ThemePreferenceFolderName);
+
+            return Path.Combine(
+                preferenceFolder,
+                ThemePreferenceFileName);
+        }
+
+
+        private static string ReadPreferredThemeName()
+        {
+            try
+            {
+                string preferenceFile =
+                    GetThemePreferenceFilePath();
+
+                if (!File.Exists(
+                    preferenceFile))
+                {
+                    return null;
+                }
+
+                string themeName =
+                    File.ReadAllText(
+                        preferenceFile)
+                        .Trim();
+
+                return string.IsNullOrWhiteSpace(
+                    themeName)
+                        ? null
+                        : themeName;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+
+        private static void SavePreferredThemeName(
+            string themeName)
+        {
+            if (string.IsNullOrWhiteSpace(
+                themeName))
+            {
+                return;
+            }
+
+            try
+            {
+                string preferenceFile =
+                    GetThemePreferenceFilePath();
+
+                string preferenceFolder =
+                    Path.GetDirectoryName(
+                        preferenceFile);
+
+                if (!Directory.Exists(
+                    preferenceFolder))
+                {
+                    Directory.CreateDirectory(
+                        preferenceFolder);
+                }
+
+                File.WriteAllText(
+                    preferenceFile,
+                    themeName.Trim());
+            }
+            catch
+            {
+                // Optional preference persistence only.
+            }
+        }
+
+
+        private void cmbThemes_SelectedIndexChanged(
+            object sender,
+            EventArgs e)
+        {
+            if (_isChangingThemeSelection)
+            {
+                return;
+            }
+
+            int requestedIndex =
+                cmbThemes.SelectedIndex;
+
+            if (requestedIndex < 0 ||
+                requestedIndex == _previousThemeIndex)
+            {
+                return;
+            }
+
+            if (!ConfirmPendingThemeChanges())
+            {
+                try
+                {
+                    _isChangingThemeSelection =
+                        true;
+
+                    cmbThemes.SelectedIndex =
+                        _previousThemeIndex;
+                }
+                finally
+                {
+                    _isChangingThemeSelection =
+                        false;
+                }
+
+                return;
+            }
+
+            LoadSelectedTheme();
+
+            _previousThemeIndex =
+                cmbThemes.SelectedIndex;
+
+            RequestPreviewRefresh();
+        }
+
+
+        private void LoadSelectedTheme()
+        {
+            string selectedThemeName =
+                cmbThemes.SelectedItem as string;
+
+            if (string.IsNullOrWhiteSpace(
+                selectedThemeName))
+            {
+                _activeTheme =
+                    null;
+
+                _activeThemeFilePath =
+                    null;
+
+                ClearThemeStylePreview();
+
+                return;
+            }
 
             string themePath =
                 Path.Combine(
                     PathManager.ThemesFolder,
-                    activeThemeName + ".theme");
+                    selectedThemeName + ".theme");
 
             try
             {
-                _activeTheme =
+                HighlightTheme loadedTheme =
                     _themeReader.Read(
                         themePath);
+
+                _activeTheme =
+                    loadedTheme;
+
+                _activeThemeFilePath =
+                    themePath;
 
                 _hasUnsavedThemeChanges =
                     false;
 
                 UpdateSaveThemeButtonState();
+
+                SavePreferredThemeName(
+                    selectedThemeName);
+
+                RefreshThemeStyleTargetList(
+                    false);
 
                 RefreshSelectedThemeStyle();
             }
@@ -698,6 +1037,16 @@ namespace NoteHighlightAddin
             {
                 _activeTheme =
                     null;
+
+                _activeThemeFilePath =
+                    null;
+
+                _hasUnsavedThemeChanges =
+                    false;
+
+                UpdateSaveThemeButtonState();
+
+                ClearThemeStyleTargetList();
 
                 ClearThemeStylePreview();
 
@@ -707,58 +1056,576 @@ namespace NoteHighlightAddin
             }
         }
 
-        private void RefreshSelectedThemeStyle()
+
+        private void cmbThemeStyleTarget_SelectedIndexChanged(
+            object sender,
+            EventArgs e)
+        {
+            if (_isRefreshingThemeStyleTarget)
+            {
+                return;
+            }
+
+            ThemeStyleTargetItem selectedItem =
+                cmbThemeStyleTarget.SelectedItem as ThemeStyleTargetItem;
+
+            if (selectedItem != null && selectedItem.IsHeader)
+            {
+                SelectFirstEditableThemeStyleTarget();
+                return;
+            }
+
+            RefreshSelectedThemeStyle();
+            RequestPreviewRefresh();
+        }
+
+
+        private void RefreshThemeStyleTargetList(
+            bool preserveSelection)
+        {
+            string previousTechnicalName = null;
+            ThemeStyleTargetItem previousItem =
+                cmbThemeStyleTarget.SelectedItem as ThemeStyleTargetItem;
+
+            if (preserveSelection &&
+                previousItem != null &&
+                !previousItem.IsHeader)
+            {
+                previousTechnicalName = previousItem.TechnicalName;
+            }
+
+            try
+            {
+                _isRefreshingThemeStyleTarget = true;
+                cmbThemeStyleTarget.Items.Clear();
+
+                if (_activeTheme == null)
+                {
+                    cmbThemeStyleTarget.Enabled = false;
+                    return;
+                }
+
+                cmbThemeStyleTarget.Enabled = true;
+                AddThemeStyleHeader("General");
+
+                foreach (string styleName
+                    in _activeTheme.Styles.Keys
+                        .Where(name =>
+                            _activeTheme.StyleAliases == null ||
+                            !_activeTheme.StyleAliases.ContainsKey(name))
+                        .OrderBy(GetGeneralStyleSortOrder)
+                        .ThenBy(
+                            name => GetFriendlyGeneralStyleName(name),
+                            StringComparer.OrdinalIgnoreCase))
+                {
+                    cmbThemeStyleTarget.Items.Add(
+                        new ThemeStyleTargetItem
+                        {
+                            DisplayName =
+                                "    " + GetFriendlyGeneralStyleName(styleName),
+                            TechnicalName = styleName,
+                            GeneralStyleName = styleName
+                        });
+                }
+
+                if (_activeTheme.StyleAliases != null &&
+                    _activeTheme.StyleAliases.Count > 0)
+                {
+                    AddThemeStyleHeader(
+                        "Aliases");
+
+                    foreach (var alias
+                        in _activeTheme.StyleAliases
+                            .OrderBy(
+                                entry =>
+                                    GetFriendlyGeneralStyleName(
+                                        entry.Key),
+                                StringComparer.OrdinalIgnoreCase))
+                    {
+                        cmbThemeStyleTarget.Items.Add(
+                            new ThemeStyleTargetItem
+                            {
+                                DisplayName =
+                                    "    "
+                                    + GetFriendlyGeneralStyleName(
+                                        alias.Key)
+                                    + "  →  "
+                                    + GetFriendlyGeneralStyleName(
+                                        alias.Value),
+
+                                TechnicalName =
+                                    alias.Key,
+
+                                AliasName =
+                                    alias.Key,
+
+                                AliasTarget =
+                                    alias.Value
+                            });
+                    }
+                }
+
+                if (_languageEditor.Configuration != null &&
+                    _languageEditor.Configuration.Groups != null &&
+                    _languageEditor.Configuration.Groups.Count > 0)
+                {
+                    AddThemeStyleHeader("Keyword Groups");
+
+                    foreach (KeywordGroupConfiguration group
+                        in _languageEditor.Configuration.Groups
+                            .Where(item => item != null)
+                            .OrderBy(item => item.Id))
+                    {
+                        string groupName =
+                            string.IsNullOrWhiteSpace(group.DisplayName)
+                                ? "Group " + group.Id
+                                : group.DisplayName;
+
+                        cmbThemeStyleTarget.Items.Add(
+                            new ThemeStyleTargetItem
+                            {
+                                DisplayName =
+                                    "    " + groupName +
+                                    " (Keywords" + group.Id + ")",
+                                TechnicalName =
+                                    "Keywords[" + group.Id + "]",
+                                KeywordGroupId = group.Id
+                            });
+                    }
+                }
+
+                int selectedIndex =
+                    FindThemeStyleTargetIndex(previousTechnicalName);
+
+                if (selectedIndex < 0)
+                {
+                    selectedIndex = FindCurrentKeywordTargetIndex();
+                }
+
+                if (selectedIndex < 0)
+                {
+                    selectedIndex =
+                        FindFirstEditableThemeStyleTargetIndex();
+                }
+
+                cmbThemeStyleTarget.SelectedIndex = selectedIndex;
+            }
+            finally
+            {
+                _isRefreshingThemeStyleTarget = false;
+            }
+        }
+
+
+        private void AddThemeStyleHeader(
+            string title)
+        {
+            cmbThemeStyleTarget.Items.Add(
+                new ThemeStyleTargetItem
+                {
+                    DisplayName = "— " + title + " —",
+                    IsHeader = true
+                });
+        }
+
+
+        private int FindThemeStyleTargetIndex(
+            string technicalName)
+        {
+            if (string.IsNullOrWhiteSpace(technicalName))
+            {
+                return -1;
+            }
+
+            for (int index = 0;
+                index < cmbThemeStyleTarget.Items.Count;
+                index++)
+            {
+                ThemeStyleTargetItem item =
+                    cmbThemeStyleTarget.Items[index] as ThemeStyleTargetItem;
+
+                if (item == null || item.IsHeader)
+                {
+                    continue;
+                }
+
+                if (string.Equals(
+                    item.TechnicalName,
+                    technicalName,
+                    StringComparison.OrdinalIgnoreCase))
+                {
+                    return index;
+                }
+            }
+
+            return -1;
+        }
+
+
+        private int FindCurrentKeywordTargetIndex()
         {
             KeywordGroupConfiguration selectedGroup =
                 _languageEditor.SelectedGroup;
 
             if (selectedGroup == null)
             {
-                ClearThemeStylePreview();
+                return -1;
+            }
+
+            return FindThemeStyleTargetIndex(
+                "Keywords[" + selectedGroup.Id + "]");
+        }
+
+
+        private int FindFirstEditableThemeStyleTargetIndex()
+        {
+            for (int index = 0;
+                index < cmbThemeStyleTarget.Items.Count;
+                index++)
+            {
+                ThemeStyleTargetItem item =
+                    cmbThemeStyleTarget.Items[index] as ThemeStyleTargetItem;
+
+                if (item != null && !item.IsHeader)
+                {
+                    return index;
+                }
+            }
+
+            return -1;
+        }
+
+
+        private void SelectFirstEditableThemeStyleTarget()
+        {
+            int index = FindFirstEditableThemeStyleTargetIndex();
+
+            if (index < 0)
+            {
                 return;
             }
 
-            string styleSlotName =
-                "Keywords[" +
-                selectedGroup.Id +
-                "]";
+            try
+            {
+                _isRefreshingThemeStyleTarget = true;
+                cmbThemeStyleTarget.SelectedIndex = index;
+            }
+            finally
+            {
+                _isRefreshingThemeStyleTarget = false;
+            }
 
-            string displayStyleSlotName =
-                "Keywords" +
-                selectedGroup.Id;
+            RefreshSelectedThemeStyle();
+        }
 
-            lblThemeGroupName.Text =
-                string.IsNullOrWhiteSpace(
-                    selectedGroup.DisplayName)
-                    ? "Group " + selectedGroup.Id
-                    : selectedGroup.DisplayName;
 
-            lblThemeStyleSlot.Text =
-                displayStyleSlotName;
+        private void ClearThemeStyleTargetList()
+        {
+            try
+            {
+                _isRefreshingThemeStyleTarget = true;
+                cmbThemeStyleTarget.Items.Clear();
+                cmbThemeStyleTarget.Enabled = false;
+            }
+            finally
+            {
+                _isRefreshingThemeStyleTarget = false;
+            }
+        }
+
+
+        private ThemeStyle GetSelectedThemeStyle(
+            out string displayName,
+            out string technicalName,
+            out bool isKeywordStyle)
+        {
+            displayName = null;
+            technicalName = null;
+            isKeywordStyle = false;
 
             if (_activeTheme == null)
             {
-                pnlGroupColourPreview.BackColor =
-                    SystemColors.Control;
+                return null;
+            }
 
-                lblGroupColourValue.Text =
-                    "(theme not loaded)";
+            ThemeStyleTargetItem target =
+                cmbThemeStyleTarget.SelectedItem as ThemeStyleTargetItem;
 
-                lblThemeStyleStatus.Text =
-                    styleSlotName;
+            if (target == null || target.IsHeader)
+            {
+                return null;
+            }
 
-                btnChangeThemeColour.Enabled =
-                    false;
+            technicalName = target.TechnicalName;
 
-                SetThemeStyleEditorState(
-                    null);
+            if (target.KeywordGroupId.HasValue)
+            {
+                int groupId = target.KeywordGroupId.Value;
+
+                KeywordGroupConfiguration group =
+                    _languageEditor.Configuration == null
+                        ? null
+                        : _languageEditor.Configuration.Groups
+                            .FirstOrDefault(item =>
+                                item != null && item.Id == groupId);
+
+                displayName =
+                    group == null ||
+                    string.IsNullOrWhiteSpace(group.DisplayName)
+                        ? "Group " + groupId
+                        : group.DisplayName;
+
+                isKeywordStyle = true;
+                return _activeTheme.GetKeywordStyle(groupId);
+            }
+
+            if (target.IsAlias)
+            {
+                string resolvedTargetName;
+
+                ThemeStyle aliasTargetStyle =
+                    ResolveAliasTargetStyle(
+                        target.AliasName,
+                        out resolvedTargetName);
+
+                displayName =
+                    GetFriendlyGeneralStyleName(
+                        target.AliasName);
+
+                technicalName =
+                    target.AliasName
+                    + " → "
+                    + (resolvedTargetName
+                        ?? target.AliasTarget
+                        ?? "(unresolved)");
+
+                return aliasTargetStyle;
+            }
+
+            displayName =
+                GetFriendlyGeneralStyleName(
+                    target.GeneralStyleName);
+
+            ThemeStyle style;
+
+            if (!_activeTheme.Styles.TryGetValue(
+                target.GeneralStyleName,
+                out style))
+            {
+                return null;
+            }
+
+            return style;
+        }
+
+
+        private ThemeStyle ResolveAliasTargetStyle(
+            string aliasName,
+            out string resolvedTargetName)
+        {
+            resolvedTargetName =
+                null;
+
+            if (_activeTheme == null ||
+                _activeTheme.StyleAliases == null ||
+                string.IsNullOrWhiteSpace(
+                    aliasName))
+            {
+                return null;
+            }
+
+            string currentName =
+                aliasName;
+
+            var visitedNames =
+                new System.Collections.Generic.HashSet<string>(
+                    StringComparer.OrdinalIgnoreCase);
+
+            while (!string.IsNullOrWhiteSpace(
+                currentName))
+            {
+                if (!visitedNames.Add(
+                    currentName))
+                {
+                    return null;
+                }
+
+                string nextTarget;
+
+                if (_activeTheme.StyleAliases.TryGetValue(
+                    currentName,
+                    out nextTarget))
+                {
+                    currentName =
+                        nextTarget;
+
+                    continue;
+                }
+
+                ThemeStyle resolvedStyle;
+
+                if (_activeTheme.Styles.TryGetValue(
+                    currentName,
+                    out resolvedStyle))
+                {
+                    resolvedTargetName =
+                        currentName;
+
+                    return resolvedStyle;
+                }
+
+                return null;
+            }
+
+            return null;
+        }
+
+
+        private static string GetFriendlyGeneralStyleName(
+            string styleName)
+        {
+            if (string.IsNullOrWhiteSpace(styleName))
+            {
+                return "Unnamed Style";
+            }
+
+            switch (styleName.ToLowerInvariant())
+            {
+                case "default": return "Default Text";
+                case "canvas": return "Background";
+                case "number": return "Numbers";
+                case "escape": return "Escape Characters";
+                case "string": return "Strings";
+                case "blockcomment": return "Block Comments";
+                case "linecomment": return "Line Comments";
+                case "preprocessor": return "Preprocessor";
+                case "operator": return "Operators";
+                case "interpolation": return "Interpolation";
+                case "linenum": return "Line Numbers";
+                default: return SplitPascalCase(styleName);
+            }
+        }
+
+
+        private static int GetGeneralStyleSortOrder(
+            string styleName)
+        {
+            if (string.IsNullOrWhiteSpace(styleName))
+            {
+                return 1000;
+            }
+
+            switch (styleName.ToLowerInvariant())
+            {
+                case "default": return 0;
+                case "canvas": return 10;
+                case "number": return 20;
+                case "string": return 30;
+                case "escape": return 40;
+                case "blockcomment": return 50;
+                case "linecomment": return 60;
+                case "preprocessor": return 70;
+                case "operator": return 80;
+                case "interpolation": return 90;
+                case "linenum": return 100;
+                default: return 500;
+            }
+        }
+
+
+        private static string SplitPascalCase(
+            string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return value;
+            }
+
+            var builder = new System.Text.StringBuilder();
+
+            for (int index = 0; index < value.Length; index++)
+            {
+                char current = value[index];
+
+                if (index > 0 &&
+                    char.IsUpper(current) &&
+                    (char.IsLower(value[index - 1]) ||
+                     char.IsDigit(value[index - 1])))
+                {
+                    builder.Append(' ');
+                }
+
+                builder.Append(current);
+            }
+
+            return builder.ToString();
+        }
+
+
+        private void RefreshSelectedThemeStyle()
+        {
+            string displayName;
+            string technicalName;
+            bool isKeywordStyle;
+
+            ThemeStyle style =
+                GetSelectedThemeStyle(
+                    out displayName,
+                    out technicalName,
+                    out isKeywordStyle);
+
+            if (_activeTheme == null)
+            {
+                ClearThemeStylePreview();
 
                 return;
             }
 
-            ThemeStyle style =
-                _activeTheme.GetKeywordStyle(
-                    selectedGroup.Id);
+            if (string.IsNullOrWhiteSpace(
+                technicalName))
+            {
+                ClearThemeStylePreview();
+
+                return;
+            }
+
+            lblThemeGroupName.Text =
+                displayName;
+
+            ThemeStyleTargetItem selectedTarget =
+                cmbThemeStyleTarget.SelectedItem
+                as ThemeStyleTargetItem;
+
+            if (isKeywordStyle)
+            {
+                lblThemeUses.Text =
+                    "Uses:";
+
+                lblThemeStyleSlot.Text =
+                    technicalName.Replace(
+                        "[",
+                        string.Empty)
+                    .Replace(
+                        "]",
+                        string.Empty);
+            }
+            else if (selectedTarget != null &&
+                     selectedTarget.IsAlias)
+            {
+                lblThemeUses.Text =
+                    "Alias:";
+
+                lblThemeStyleSlot.Text =
+                    technicalName;
+            }
+            else
+            {
+                lblThemeUses.Text =
+                    "Type:";
+
+                lblThemeStyleSlot.Text =
+                    "General style";
+            }
 
             if (style == null)
             {
@@ -772,7 +1639,7 @@ namespace NoteHighlightAddin
                     "Theme: " +
                     _activeTheme.Name +
                     " | " +
-                    styleSlotName;
+                    technicalName;
 
                 btnChangeThemeColour.Enabled =
                     false;
@@ -811,6 +1678,7 @@ namespace NoteHighlightAddin
                 "Theme: " +
                 _activeTheme.Name;
         }
+
 
         private void ClearThemeStylePreview()
         {
@@ -899,17 +1767,15 @@ namespace NoteHighlightAddin
                 return;
             }
 
-            KeywordGroupConfiguration selectedGroup =
-                _languageEditor.SelectedGroup;
-
-            if (selectedGroup == null)
-            {
-                return;
-            }
+            string displayName;
+            string technicalName;
+            bool isKeywordStyle;
 
             ThemeStyle style =
-                _activeTheme.GetKeywordStyle(
-                    selectedGroup.Id);
+                GetSelectedThemeStyle(
+                    out displayName,
+                    out technicalName,
+                    out isKeywordStyle);
 
             if (style == null)
             {
@@ -954,17 +1820,15 @@ namespace NoteHighlightAddin
                 return;
             }
 
-            KeywordGroupConfiguration selectedGroup =
-                _languageEditor.SelectedGroup;
-
-            if (selectedGroup == null)
-            {
-                return;
-            }
+            string displayName;
+            string technicalName;
+            bool isKeywordStyle;
 
             ThemeStyle style =
-                _activeTheme.GetKeywordStyle(
-                    selectedGroup.Id);
+                GetSelectedThemeStyle(
+                    out displayName,
+                    out technicalName,
+                    out isKeywordStyle);
 
             if (style == null)
             {
@@ -1018,6 +1882,1156 @@ namespace NoteHighlightAddin
             RequestPreviewRefresh();
         }
 
+        private void btnNewTheme_Click(
+            object sender,
+            EventArgs e)
+        {
+            if (_activeTheme == null)
+            {
+                return;
+            }
+
+            if (!ConfirmPendingThemeChanges())
+            {
+                return;
+            }
+
+            string newThemeName;
+            bool copyCurrentTheme;
+
+            if (!ShowNewThemeDialog(
+                out newThemeName,
+                out copyCurrentTheme))
+            {
+                return;
+            }
+
+            string normalizedThemeName;
+            string validationMessage;
+
+            if (!TryNormalizeThemeName(
+                newThemeName,
+                out normalizedThemeName,
+                out validationMessage))
+            {
+                MessageBox.Show(
+                    this,
+                    validationMessage,
+                    "New Theme",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+
+                return;
+            }
+
+            string destinationPath =
+                Path.Combine(
+                    PathManager.ThemesFolder,
+                    normalizedThemeName + ".theme");
+
+            if (File.Exists(
+                destinationPath))
+            {
+                MessageBox.Show(
+                    this,
+                    "A theme named '"
+                    + normalizedThemeName
+                    + "' already exists.",
+                    "New Theme",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+
+                return;
+            }
+
+            try
+            {
+                HighlightTheme newTheme =
+                    copyCurrentTheme
+                        ? CloneTheme(
+                            _activeTheme,
+                            normalizedThemeName)
+                        : CreateCleanTheme(
+                            _activeTheme,
+                            normalizedThemeName);
+
+                _themeSerializer.Serialize(
+                    newTheme,
+                    destinationPath);
+
+                SavePreferredThemeName(
+                    normalizedThemeName);
+
+                ReloadThemesAndSelect(
+                    normalizedThemeName);
+
+                RequestPreviewRefresh();
+            }
+            catch (Exception exception)
+            {
+                MessageBox.Show(
+                    this,
+                    "The theme could not be created."
+                    + Environment.NewLine
+                    + Environment.NewLine
+                    + exception.Message,
+                    "New Theme",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+            }
+        }
+
+
+        private HighlightTheme CreateCleanTheme(
+            HighlightTheme structuralTemplate,
+            string newName)
+        {
+            if (structuralTemplate == null)
+            {
+                throw new ArgumentNullException(
+                    nameof(structuralTemplate));
+            }
+
+            var theme =
+                new HighlightTheme
+                {
+                    Name =
+                        newName,
+
+                    Description =
+                        "Custom NoteHighlight+ theme."
+                };
+
+            theme.Categories.Add(
+                "light");
+
+            foreach (var styleEntry
+                in structuralTemplate.Styles)
+            {
+                theme.Styles.Add(
+                    styleEntry.Key,
+                    CreateCleanStyleForSlot(
+                        styleEntry.Key));
+            }
+
+            foreach (var alias
+                in structuralTemplate.StyleAliases)
+            {
+                theme.StyleAliases.Add(
+                    alias.Key,
+                    alias.Value);
+            }
+
+            int keywordCount =
+                Math.Max(
+                    structuralTemplate.KeywordStyles.Count,
+                    GetRequiredKeywordStyleCount());
+
+            for (int index = 0;
+                index < keywordCount;
+                index++)
+            {
+                theme.KeywordStyles.Add(
+                    new ThemeStyle
+                    {
+                        Colour =
+                            "#0000FF",
+
+                        Bold =
+                            false,
+
+                        Italic =
+                            false
+                    });
+            }
+
+            foreach (SemanticTokenStyle token
+                in structuralTemplate.SemanticTokenTypes)
+            {
+                theme.SemanticTokenTypes.Add(
+                    new SemanticTokenStyle
+                    {
+                        Type =
+                            token.Type,
+
+                        StyleReference =
+                            token.StyleReference
+                    });
+            }
+
+            return theme;
+        }
+
+
+        private static ThemeStyle CreateCleanStyleForSlot(
+            string styleName)
+        {
+            string normalizedName =
+                styleName
+                    ?? string.Empty;
+
+            string colour =
+                "#000000";
+
+            bool italic =
+                false;
+
+            if (string.Equals(
+                normalizedName,
+                "Canvas",
+                StringComparison.OrdinalIgnoreCase))
+            {
+                colour =
+                    "#FFFFFF";
+            }
+            else if (normalizedName.IndexOf(
+                "Comment",
+                StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                colour =
+                    "#008000";
+
+                italic =
+                    true;
+            }
+            else if (normalizedName.IndexOf(
+                "String",
+                StringComparison.OrdinalIgnoreCase) >= 0 ||
+                normalizedName.IndexOf(
+                    "Escape",
+                    StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                colour =
+                    "#A31515";
+            }
+            else if (normalizedName.IndexOf(
+                "Number",
+                StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                colour =
+                    "#098658";
+            }
+            else if (normalizedName.IndexOf(
+                "PreProcessor",
+                StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                colour =
+                    "#AF00DB";
+            }
+
+            return new ThemeStyle
+            {
+                Colour =
+                    colour,
+
+                Bold =
+                    false,
+
+                Italic =
+                    italic
+            };
+        }
+
+
+        private int GetRequiredKeywordStyleCount()
+        {
+            if (_languageEditor.Configuration == null ||
+                _languageEditor.Configuration.Groups == null ||
+                _languageEditor.Configuration.Groups.Count == 0)
+            {
+                return 6;
+            }
+
+            int maximumGroupId =
+                _languageEditor.Configuration.Groups
+                    .Where(
+                        group =>
+                            group != null)
+                    .Select(
+                        group =>
+                            group.Id)
+                    .DefaultIfEmpty(
+                        6)
+                    .Max();
+
+            return Math.Max(
+                6,
+                maximumGroupId);
+        }
+
+
+        private bool ShowNewThemeDialog(
+            out string themeName,
+            out bool copyCurrentTheme)
+        {
+            themeName =
+                null;
+
+            copyCurrentTheme =
+                false;
+
+            using (var dialog =
+                new Form())
+            {
+                dialog.Text =
+                    "New Theme";
+
+                dialog.FormBorderStyle =
+                    FormBorderStyle.FixedDialog;
+
+                dialog.StartPosition =
+                    FormStartPosition.CenterParent;
+
+                dialog.MinimizeBox =
+                    false;
+
+                dialog.MaximizeBox =
+                    false;
+
+                dialog.ShowInTaskbar =
+                    false;
+
+                dialog.ClientSize =
+                    new Size(
+                        390,
+                        185);
+
+                var nameLabel =
+                    new Label
+                    {
+                        AutoSize = true,
+                        Left = 12,
+                        Top = 14,
+                        Text = "Theme name:"
+                    };
+
+                var nameTextBox =
+                    new TextBox
+                    {
+                        Left = 12,
+                        Top = 35,
+                        Width = 366,
+                        Text = "my-theme"
+                    };
+
+                var baseLabel =
+                    new Label
+                    {
+                        AutoSize = true,
+                        Left = 12,
+                        Top = 70,
+                        Text = "Base:"
+                    };
+
+                var cleanThemeRadio =
+                    new RadioButton
+                    {
+                        AutoSize = true,
+                        Left = 28,
+                        Top = 92,
+                        Checked = true,
+                        Text = "Default clean theme"
+                    };
+
+                var copyThemeRadio =
+                    new RadioButton
+                    {
+                        AutoSize = true,
+                        Left = 28,
+                        Top = 116,
+                        Text = "Copy current theme"
+                    };
+
+                var createButton =
+                    new Button
+                    {
+                        Text = "Create",
+                        DialogResult = DialogResult.OK,
+                        Left = 222,
+                        Top = 150,
+                        Width = 75
+                    };
+
+                var cancelButton =
+                    new Button
+                    {
+                        Text = "Cancel",
+                        DialogResult = DialogResult.Cancel,
+                        Left = 303,
+                        Top = 150,
+                        Width = 75
+                    };
+
+                dialog.Controls.Add(
+                    nameLabel);
+
+                dialog.Controls.Add(
+                    nameTextBox);
+
+                dialog.Controls.Add(
+                    baseLabel);
+
+                dialog.Controls.Add(
+                    cleanThemeRadio);
+
+                dialog.Controls.Add(
+                    copyThemeRadio);
+
+                dialog.Controls.Add(
+                    createButton);
+
+                dialog.Controls.Add(
+                    cancelButton);
+
+                dialog.AcceptButton =
+                    createButton;
+
+                dialog.CancelButton =
+                    cancelButton;
+
+                dialog.Shown +=
+                    (sender, e) =>
+                    {
+                        nameTextBox.Focus();
+                        nameTextBox.SelectAll();
+                    };
+
+                if (dialog.ShowDialog(
+                    this) != DialogResult.OK)
+                {
+                    return false;
+                }
+
+                themeName =
+                    nameTextBox.Text;
+
+                copyCurrentTheme =
+                    copyThemeRadio.Checked;
+
+                return true;
+            }
+        }
+
+
+        private void btnRenameTheme_Click(
+            object sender,
+            EventArgs e)
+        {
+            if (_activeTheme == null ||
+                string.IsNullOrWhiteSpace(
+                    _activeThemeFilePath))
+            {
+                return;
+            }
+
+            if (!ConfirmPendingThemeChanges())
+            {
+                return;
+            }
+
+            string currentThemeName =
+                cmbThemes.SelectedItem as string;
+
+            if (string.IsNullOrWhiteSpace(
+                currentThemeName))
+            {
+                currentThemeName =
+                    _activeTheme.Name;
+            }
+
+            string requestedName =
+                ShowThemeNameDialog(
+                    currentThemeName,
+                    "Rename Theme",
+                    "New theme name:");
+
+            if (requestedName == null)
+            {
+                return;
+            }
+
+            string normalizedThemeName;
+            string validationMessage;
+
+            if (!TryNormalizeThemeName(
+                requestedName,
+                out normalizedThemeName,
+                out validationMessage))
+            {
+                MessageBox.Show(
+                    this,
+                    validationMessage,
+                    "Rename Theme",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+
+                return;
+            }
+
+            if (string.Equals(
+                currentThemeName,
+                normalizedThemeName,
+                StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            string destinationPath =
+                Path.Combine(
+                    PathManager.ThemesFolder,
+                    normalizedThemeName + ".theme");
+
+            if (File.Exists(
+                destinationPath))
+            {
+                MessageBox.Show(
+                    this,
+                    "A theme named '"
+                    + normalizedThemeName
+                    + "' already exists.",
+                    "Rename Theme",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+
+                return;
+            }
+
+            try
+            {
+                HighlightTheme renamedTheme =
+                    CloneTheme(
+                        _activeTheme,
+                        normalizedThemeName);
+
+                _themeSerializer.Serialize(
+                    renamedTheme,
+                    destinationPath);
+
+                if (File.Exists(
+                    _activeThemeFilePath))
+                {
+                    File.Delete(
+                        _activeThemeFilePath);
+                }
+
+                SavePreferredThemeName(
+                    normalizedThemeName);
+
+                ReloadThemesAndSelect(
+                    normalizedThemeName);
+
+                RequestPreviewRefresh();
+            }
+            catch (Exception exception)
+            {
+                MessageBox.Show(
+                    this,
+                    "The theme could not be renamed."
+                    + Environment.NewLine
+                    + Environment.NewLine
+                    + exception.Message,
+                    "Rename Theme",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+            }
+        }
+
+
+        private void btnDeleteTheme_Click(
+            object sender,
+            EventArgs e)
+        {
+            if (_activeTheme == null ||
+                string.IsNullOrWhiteSpace(
+                    _activeThemeFilePath))
+            {
+                return;
+            }
+
+            if (cmbThemes.Items.Count <= 1)
+            {
+                MessageBox.Show(
+                    this,
+                    "The last remaining theme cannot be deleted.",
+                    "Delete Theme",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+
+                return;
+            }
+
+            if (!ConfirmPendingThemeChanges())
+            {
+                return;
+            }
+
+            string themeName =
+                cmbThemes.SelectedItem as string;
+
+            if (string.IsNullOrWhiteSpace(
+                themeName))
+            {
+                themeName =
+                    _activeTheme.Name;
+            }
+
+            DialogResult result =
+                MessageBox.Show(
+                    this,
+                    "Delete theme '"
+                    + themeName
+                    + "'?"
+                    + Environment.NewLine
+                    + Environment.NewLine
+                    + "This action cannot be undone.",
+                    "Delete Theme",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Warning,
+                    MessageBoxDefaultButton.Button2);
+
+            if (result != DialogResult.Yes)
+            {
+                return;
+            }
+
+            int deletedIndex =
+                cmbThemes.SelectedIndex;
+
+            try
+            {
+                if (File.Exists(
+                    _activeThemeFilePath))
+                {
+                    File.Delete(
+                        _activeThemeFilePath);
+                }
+
+                string nextThemeName =
+                    GetNextThemeNameAfterDeletion(
+                        deletedIndex);
+
+                if (string.IsNullOrWhiteSpace(
+                    nextThemeName))
+                {
+                    ClearPreferredThemeName();
+
+                    LoadAvailableThemes();
+
+                    RequestPreviewRefresh();
+
+                    return;
+                }
+
+                SavePreferredThemeName(
+                    nextThemeName);
+
+                ReloadThemesAndSelect(
+                    nextThemeName);
+
+                RequestPreviewRefresh();
+            }
+            catch (Exception exception)
+            {
+                MessageBox.Show(
+                    this,
+                    "The theme could not be deleted."
+                    + Environment.NewLine
+                    + Environment.NewLine
+                    + exception.Message,
+                    "Delete Theme",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+            }
+        }
+
+
+        private string GetNextThemeNameAfterDeletion(
+            int deletedIndex)
+        {
+            var remainingThemes =
+                Directory.GetFiles(
+                    PathManager.ThemesFolder,
+                    "*.theme",
+                    SearchOption.TopDirectoryOnly)
+                .Select(
+                    path =>
+                        Path.GetFileNameWithoutExtension(
+                            path))
+                .OrderBy(
+                    name => name,
+                    StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (remainingThemes.Count == 0)
+            {
+                return null;
+            }
+
+            int nextIndex =
+                deletedIndex;
+
+            if (nextIndex < 0)
+            {
+                nextIndex = 0;
+            }
+
+            if (nextIndex >= remainingThemes.Count)
+            {
+                nextIndex =
+                    remainingThemes.Count - 1;
+            }
+
+            return remainingThemes[nextIndex];
+        }
+
+
+        private static void ClearPreferredThemeName()
+        {
+            try
+            {
+                string preferenceFile =
+                    GetThemePreferenceFilePath();
+
+                if (File.Exists(
+                    preferenceFile))
+                {
+                    File.Delete(
+                        preferenceFile);
+                }
+            }
+            catch
+            {
+                // Preference cleanup is optional.
+            }
+        }
+
+
+        private void btnDuplicateTheme_Click(
+            object sender,
+            EventArgs e)
+        {
+            if (_activeTheme == null ||
+                string.IsNullOrWhiteSpace(
+                    _activeThemeFilePath))
+            {
+                return;
+            }
+
+            if (!ConfirmPendingThemeChanges())
+            {
+                return;
+            }
+
+            string sourceThemeName =
+                cmbThemes.SelectedItem as string;
+
+            if (string.IsNullOrWhiteSpace(
+                sourceThemeName))
+            {
+                sourceThemeName =
+                    _activeTheme.Name;
+            }
+
+            string requestedName =
+                ShowThemeNameDialog(
+                    sourceThemeName + "-copy",
+                    "Duplicate Theme",
+                    "New theme name:");
+
+            if (requestedName == null)
+            {
+                return;
+            }
+
+            string normalizedThemeName;
+            string validationMessage;
+
+            if (!TryNormalizeThemeName(
+                requestedName,
+                out normalizedThemeName,
+                out validationMessage))
+            {
+                MessageBox.Show(
+                    this,
+                    validationMessage,
+                    "Duplicate Theme",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+
+                return;
+            }
+
+            string destinationPath =
+                Path.Combine(
+                    PathManager.ThemesFolder,
+                    normalizedThemeName + ".theme");
+
+            if (File.Exists(
+                destinationPath))
+            {
+                MessageBox.Show(
+                    this,
+                    "A theme named '"
+                    + normalizedThemeName
+                    + "' already exists.",
+                    "Duplicate Theme",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+
+                return;
+            }
+
+            try
+            {
+                HighlightTheme duplicate =
+                    CloneTheme(
+                        _activeTheme,
+                        normalizedThemeName);
+
+                _themeSerializer.Serialize(
+                    duplicate,
+                    destinationPath);
+
+                ReloadThemesAndSelect(
+                    normalizedThemeName);
+
+                RequestPreviewRefresh();
+            }
+            catch (Exception exception)
+            {
+                MessageBox.Show(
+                    this,
+                    "The theme could not be duplicated."
+                    + Environment.NewLine
+                    + Environment.NewLine
+                    + exception.Message,
+                    "Duplicate Theme",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+            }
+        }
+
+
+        private void ReloadThemesAndSelect(
+            string themeName)
+        {
+            try
+            {
+                _isChangingThemeSelection =
+                    true;
+
+                cmbThemes.Items.Clear();
+
+                string[] themeFiles =
+                    Directory.GetFiles(
+                        PathManager.ThemesFolder,
+                        "*.theme",
+                        SearchOption.TopDirectoryOnly);
+
+                foreach (string themeFile
+                    in themeFiles
+                        .OrderBy(
+                            path =>
+                                Path.GetFileNameWithoutExtension(
+                                    path),
+                            StringComparer.OrdinalIgnoreCase))
+                {
+                    cmbThemes.Items.Add(
+                        Path.GetFileNameWithoutExtension(
+                            themeFile));
+                }
+
+                int themeIndex =
+                    FindThemeIndex(
+                        themeName);
+
+                cmbThemes.SelectedIndex =
+                    themeIndex >= 0
+                        ? themeIndex
+                        : 0;
+
+                _previousThemeIndex =
+                    cmbThemes.SelectedIndex;
+            }
+            finally
+            {
+                _isChangingThemeSelection =
+                    false;
+            }
+
+            LoadSelectedTheme();
+        }
+
+
+        private static HighlightTheme CloneTheme(
+            HighlightTheme source,
+            string newName)
+        {
+            if (source == null)
+            {
+                throw new ArgumentNullException(
+                    nameof(source));
+            }
+
+            var clone =
+                new HighlightTheme
+                {
+                    Name =
+                        newName,
+
+                    Description =
+                        source.Description
+                };
+
+            foreach (var variable
+                in source.Variables)
+            {
+                clone.Variables.Add(
+                    variable.Key,
+                    variable.Value);
+            }
+
+            foreach (string category
+                in source.Categories)
+            {
+                clone.Categories.Add(
+                    category);
+            }
+
+            foreach (var styleEntry
+                in source.Styles)
+            {
+                clone.Styles.Add(
+                    styleEntry.Key,
+                    CloneThemeStyle(
+                        styleEntry.Value));
+            }
+
+            foreach (var alias
+                in source.StyleAliases)
+            {
+                clone.StyleAliases.Add(
+                    alias.Key,
+                    alias.Value);
+            }
+
+            foreach (ThemeStyle keywordStyle
+                in source.KeywordStyles)
+            {
+                clone.KeywordStyles.Add(
+                    CloneThemeStyle(
+                        keywordStyle));
+            }
+
+            foreach (SemanticTokenStyle token
+                in source.SemanticTokenTypes)
+            {
+                clone.SemanticTokenTypes.Add(
+                    new SemanticTokenStyle
+                    {
+                        Type =
+                            token.Type,
+
+                        StyleReference =
+                            token.StyleReference
+                    });
+            }
+
+            return clone;
+        }
+
+
+        private static ThemeStyle CloneThemeStyle(
+            ThemeStyle source)
+        {
+            if (source == null)
+            {
+                return new ThemeStyle();
+            }
+
+            return new ThemeStyle
+            {
+                Colour =
+                    source.Colour,
+
+                ColourReference =
+                    source.ColourReference,
+
+                Bold =
+                    source.Bold,
+
+                Italic =
+                    source.Italic
+            };
+        }
+
+
+        private static bool TryNormalizeThemeName(
+            string requestedName,
+            out string normalizedName,
+            out string validationMessage)
+        {
+            normalizedName =
+                null;
+
+            validationMessage =
+                null;
+
+            if (string.IsNullOrWhiteSpace(
+                requestedName))
+            {
+                validationMessage =
+                    "Enter a name for the new theme.";
+
+                return false;
+            }
+
+            string trimmedName =
+                requestedName.Trim();
+
+            if (trimmedName.EndsWith(
+                ".theme",
+                StringComparison.OrdinalIgnoreCase))
+            {
+                trimmedName =
+                    Path.GetFileNameWithoutExtension(
+                        trimmedName);
+            }
+
+            if (string.IsNullOrWhiteSpace(
+                trimmedName))
+            {
+                validationMessage =
+                    "Enter a valid theme name.";
+
+                return false;
+            }
+
+            if (trimmedName.IndexOfAny(
+                Path.GetInvalidFileNameChars()) >= 0)
+            {
+                validationMessage =
+                    "The theme name contains characters that are not valid in a file name.";
+
+                return false;
+            }
+
+            normalizedName =
+                trimmedName;
+
+            return true;
+        }
+
+
+        private string ShowThemeNameDialog(
+            string suggestedName,
+            string dialogTitle,
+            string promptText)
+        {
+            using (var dialog =
+                new Form())
+            {
+                dialog.Text =
+                    string.IsNullOrWhiteSpace(
+                        dialogTitle)
+                        ? "Theme"
+                        : dialogTitle;
+
+                dialog.FormBorderStyle =
+                    FormBorderStyle.FixedDialog;
+
+                dialog.StartPosition =
+                    FormStartPosition.CenterParent;
+
+                dialog.MinimizeBox =
+                    false;
+
+                dialog.MaximizeBox =
+                    false;
+
+                dialog.ShowInTaskbar =
+                    false;
+
+                dialog.ClientSize =
+                    new Size(
+                        360,
+                        118);
+
+                var label =
+                    new Label
+                    {
+                        AutoSize = true,
+                        Left = 12,
+                        Top = 14,
+                        Text =
+                            string.IsNullOrWhiteSpace(
+                                promptText)
+                                ? "Theme name:"
+                                : promptText
+                    };
+
+                var textBox =
+                    new TextBox
+                    {
+                        Left = 12,
+                        Top = 35,
+                        Width = 336,
+                        Text = suggestedName ?? string.Empty
+                    };
+
+                var okButton =
+                    new Button
+                    {
+                        Text = "OK",
+                        DialogResult = DialogResult.OK,
+                        Left = 192,
+                        Top = 75,
+                        Width = 75
+                    };
+
+                var cancelButton =
+                    new Button
+                    {
+                        Text = "Cancel",
+                        DialogResult = DialogResult.Cancel,
+                        Left = 273,
+                        Top = 75,
+                        Width = 75
+                    };
+
+                dialog.Controls.Add(
+                    label);
+
+                dialog.Controls.Add(
+                    textBox);
+
+                dialog.Controls.Add(
+                    okButton);
+
+                dialog.Controls.Add(
+                    cancelButton);
+
+                dialog.AcceptButton =
+                    okButton;
+
+                dialog.CancelButton =
+                    cancelButton;
+
+                dialog.Shown +=
+                    (sender, e) =>
+                    {
+                        textBox.Focus();
+                        textBox.SelectAll();
+                    };
+
+                return dialog.ShowDialog(
+                    this) == DialogResult.OK
+                        ? textBox.Text
+                        : null;
+            }
+        }
+
+
         private void btnSaveTheme_Click(
             object sender,
             EventArgs e)
@@ -1045,9 +3059,12 @@ namespace NoteHighlightAddin
             }
 
             string themePath =
-                Path.Combine(
-                    PathManager.ThemesFolder,
-                    _activeTheme.Name + ".theme");
+                !string.IsNullOrWhiteSpace(
+                    _activeThemeFilePath)
+                    ? _activeThemeFilePath
+                    : Path.Combine(
+                        PathManager.ThemesFolder,
+                        _activeTheme.Name + ".theme");
 
             try
             {
@@ -1154,6 +3171,19 @@ namespace NoteHighlightAddin
             btnSaveTheme.Enabled =
                 _activeTheme != null &&
                 _hasUnsavedThemeChanges;
+
+            btnNewTheme.Enabled =
+                _activeTheme != null;
+
+            btnDuplicateTheme.Enabled =
+                _activeTheme != null;
+
+            btnRenameTheme.Enabled =
+                _activeTheme != null;
+
+            btnDeleteTheme.Enabled =
+                _activeTheme != null &&
+                cmbThemes.Items.Count > 1;
         }
 
 
@@ -1274,7 +3304,9 @@ namespace NoteHighlightAddin
                     _languageEditor.Configuration.Language,
 
                 HighLightStyle =
-                    "shinx",
+                    _activeTheme != null
+                        ? _activeTheme.Name
+                        : cmbThemes.SelectedItem as string,
 
                 ShowLineNumber =
                     true,
@@ -1844,7 +3876,9 @@ namespace NoteHighlightAddin
 
             _languageRibbonController.RefreshLanguageList();
 
-            LoadActiveTheme();
+            EnsureSelectedLanguageIsLoaded();
+
+            LoadAvailableThemes();
 
             _previousLanguageIndex =
                 lbxLanguages.SelectedIndex;
@@ -1854,6 +3888,35 @@ namespace NoteHighlightAddin
 
             RequestPreviewRefresh();
         }
+
+        private void EnsureSelectedLanguageIsLoaded()
+        {
+            if (_languageEditor.HasConfiguration ||
+                lbxLanguages.SelectedIndex < 0)
+            {
+                return;
+            }
+
+            try
+            {
+                _isChangingLanguageSelection =
+                    true;
+
+                _languageRibbonController
+                    .LoadSelectedLanguageConfiguration();
+
+                _previousLanguageIndex =
+                    lbxLanguages.SelectedIndex;
+
+                RefreshSelectedThemeStyle();
+            }
+            finally
+            {
+                _isChangingLanguageSelection =
+                    false;
+            }
+        }
+
 
         private void BtnRemoveLanguage_Click(
             object sender,
@@ -1881,6 +3944,37 @@ namespace NoteHighlightAddin
         {
             _groupSelectionController.RefreshSelection();
 
+            ThemeStyleTargetItem currentThemeTarget =
+                cmbThemeStyleTarget.SelectedItem as ThemeStyleTargetItem;
+
+            bool preserveThemeTarget =
+                currentThemeTarget != null &&
+                !currentThemeTarget.IsHeader &&
+                !currentThemeTarget.KeywordGroupId.HasValue;
+
+            RefreshThemeStyleTargetList(
+                preserveThemeTarget);
+
+            if (!preserveThemeTarget)
+            {
+                int keywordTargetIndex =
+                    FindCurrentKeywordTargetIndex();
+
+                if (keywordTargetIndex >= 0)
+                {
+                    try
+                    {
+                        _isRefreshingThemeStyleTarget = true;
+                        cmbThemeStyleTarget.SelectedIndex =
+                            keywordTargetIndex;
+                    }
+                    finally
+                    {
+                        _isRefreshingThemeStyleTarget = false;
+                    }
+                }
+            }
+
             RefreshSelectedThemeStyle();
 
             RequestPreviewRefresh();
@@ -1900,6 +3994,9 @@ namespace NoteHighlightAddin
         {
             _groupDetailsController.ApplyChanges(
                 false);
+
+            RefreshThemeStyleTargetList(
+                true);
         }
 
         private void txtGroupDescription_TextChanged(
