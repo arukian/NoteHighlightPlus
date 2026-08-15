@@ -30,5 +30,42 @@ namespace NoteHighlightAddin
                 comboBox.Items.Add(themeName);
             }
         }
+
+        public bool TrySelectTheme(
+            ComboBox comboBox,
+            string themeName)
+        {
+            if (comboBox == null)
+            {
+                throw new ArgumentNullException(
+                    nameof(comboBox));
+            }
+
+            if (string.IsNullOrWhiteSpace(themeName))
+            {
+                return false;
+            }
+
+            for (int index = 0;
+                index < comboBox.Items.Count;
+                index++)
+            {
+                string item =
+                    comboBox.Items[index] as string;
+
+                if (!string.Equals(
+                    item,
+                    themeName,
+                    StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                comboBox.SelectedIndex = index;
+                return true;
+            }
+
+            return false;
+        }
     }
 }

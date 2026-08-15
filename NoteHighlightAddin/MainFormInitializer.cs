@@ -10,12 +10,14 @@ namespace NoteHighlightAddin
         private readonly CodeEditorConfigurator _editorConfigurator;
         private readonly MainFormSettingsProvider _settingsProvider;
         private readonly MainFormSettingsBinder _settingsBinder;
+        private readonly ThemePreferenceProvider _themePreferenceProvider;
 
         public MainFormInitializer(
             ThemeComboBoxBinder themeBinder,
             CodeEditorConfigurator editorConfigurator,
             MainFormSettingsProvider settingsProvider,
-            MainFormSettingsBinder settingsBinder)
+            MainFormSettingsBinder settingsBinder,
+            ThemePreferenceProvider themePreferenceProvider)
         {
             _themeBinder = themeBinder
                 ?? throw new ArgumentNullException(nameof(themeBinder));
@@ -28,6 +30,9 @@ namespace NoteHighlightAddin
 
             _settingsBinder = settingsBinder
                 ?? throw new ArgumentNullException(nameof(settingsBinder));
+
+            _themePreferenceProvider = themePreferenceProvider
+                ?? throw new ArgumentNullException(nameof(themePreferenceProvider));
         }
 
         public void Initialize(
@@ -53,6 +58,19 @@ namespace NoteHighlightAddin
                 backgroundButton,
                 saveToClipboard,
                 showLineNumber);
+
+            string preferredTheme =
+                _themePreferenceProvider.ReadThemeName();
+
+            _themeBinder.TrySelectTheme(
+                codeStyle,
+                preferredTheme);
+
+            if (codeStyle.SelectedIndex < 0 &&
+                codeStyle.Items.Count > 0)
+            {
+                codeStyle.SelectedIndex = 0;
+            }
         }
     }
 }

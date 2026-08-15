@@ -40,6 +40,7 @@ namespace NoteHighlightAddin
         private readonly IPreviewSampleCodeService _previewSampleCodeService;
         private readonly IHighlightThemeReader _themeReader;
         private readonly IHighlightThemeSerializer _themeSerializer;
+        private readonly ThemePreferenceProvider _themePreferenceProvider;
         private HighlightTheme _activeTheme;
         private string _activeThemeFilePath;
         private bool _hasUnsavedThemeChanges;
@@ -54,12 +55,6 @@ namespace NoteHighlightAddin
         // Adding to protect language change 
         private bool _isChangingLanguageSelection;
         private int _previousLanguageIndex = -1;
-
-        private const string ThemePreferenceFolderName =
-            "NoteHighlightPlus";
-
-        private const string ThemePreferenceFileName =
-            "last-theme.txt";
 
         private sealed class ThemeStyleTargetItem
         {
@@ -121,6 +116,9 @@ namespace NoteHighlightAddin
 
             _themeSerializer =
                 new HighlightThemeSerializer();
+
+            _themePreferenceProvider =
+                new ThemePreferenceProvider();
 
             cmbThemes.SelectedIndexChanged -=
                 cmbThemes_SelectedIndexChanged;
@@ -805,7 +803,7 @@ namespace NoteHighlightAddin
                     true;
 
                 string preferredTheme =
-                    ReadPreferredThemeName();
+                    _themePreferenceProvider.ReadThemeName();
 
                 int preferredThemeIndex =
                     FindThemeIndex(
@@ -855,86 +853,6 @@ namespace NoteHighlightAddin
             }
 
             return -1;
-        }
-
-
-        private static string GetThemePreferenceFilePath()
-        {
-            string preferenceFolder =
-                Path.Combine(
-                    Environment.GetFolderPath(
-                        Environment.SpecialFolder.ApplicationData),
-                    ThemePreferenceFolderName);
-
-            return Path.Combine(
-                preferenceFolder,
-                ThemePreferenceFileName);
-        }
-
-
-        private static string ReadPreferredThemeName()
-        {
-            try
-            {
-                string preferenceFile =
-                    GetThemePreferenceFilePath();
-
-                if (!File.Exists(
-                    preferenceFile))
-                {
-                    return null;
-                }
-
-                string themeName =
-                    File.ReadAllText(
-                        preferenceFile)
-                        .Trim();
-
-                return string.IsNullOrWhiteSpace(
-                    themeName)
-                        ? null
-                        : themeName;
-            }
-            catch
-            {
-                return null;
-            }
-        }
-
-
-        private static void SavePreferredThemeName(
-            string themeName)
-        {
-            if (string.IsNullOrWhiteSpace(
-                themeName))
-            {
-                return;
-            }
-
-            try
-            {
-                string preferenceFile =
-                    GetThemePreferenceFilePath();
-
-                string preferenceFolder =
-                    Path.GetDirectoryName(
-                        preferenceFile);
-
-                if (!Directory.Exists(
-                    preferenceFolder))
-                {
-                    Directory.CreateDirectory(
-                        preferenceFolder);
-                }
-
-                File.WriteAllText(
-                    preferenceFile,
-                    themeName.Trim());
-            }
-            catch
-            {
-                // Optional preference persistence only.
-            }
         }
 
 
@@ -1025,7 +943,7 @@ namespace NoteHighlightAddin
 
                 UpdateSaveThemeButtonState();
 
-                SavePreferredThemeName(
+                _themePreferenceProvider.SaveThemeName(
                     selectedThemeName);
 
                 RefreshThemeStyleTargetList(
@@ -1959,7 +1877,7 @@ namespace NoteHighlightAddin
                     newTheme,
                     destinationPath);
 
-                SavePreferredThemeName(
+                _themePreferenceProvider.SaveThemeName(
                     normalizedThemeName);
 
                 ReloadThemesAndSelect(
@@ -2414,7 +2332,7 @@ namespace NoteHighlightAddin
                         _activeThemeFilePath);
                 }
 
-                SavePreferredThemeName(
+                _themePreferenceProvider.SaveThemeName(
                     normalizedThemeName);
 
                 ReloadThemesAndSelect(
@@ -2513,7 +2431,7 @@ namespace NoteHighlightAddin
                 if (string.IsNullOrWhiteSpace(
                     nextThemeName))
                 {
-                    ClearPreferredThemeName();
+                    _themePreferenceProvider.Clear();
 
                     LoadAvailableThemes();
 
@@ -2522,7 +2440,7 @@ namespace NoteHighlightAddin
                     return;
                 }
 
-                SavePreferredThemeName(
+                _themePreferenceProvider.SaveThemeName(
                     nextThemeName);
 
                 ReloadThemesAndSelect(
@@ -2582,27 +2500,6 @@ namespace NoteHighlightAddin
             }
 
             return remainingThemes[nextIndex];
-        }
-
-
-        private static void ClearPreferredThemeName()
-        {
-            try
-            {
-                string preferenceFile =
-                    GetThemePreferenceFilePath();
-
-                if (File.Exists(
-                    preferenceFile))
-                {
-                    File.Delete(
-                        preferenceFile);
-                }
-            }
-            catch
-            {
-                // Preference cleanup is optional.
-            }
         }
 
 
