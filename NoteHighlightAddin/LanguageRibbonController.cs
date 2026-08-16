@@ -349,46 +349,22 @@ namespace NoteHighlightAddin
                     nameof(language));
             }
 
-            string tag =
-                language.Tag?.Trim();
+            string resolvedTag =
+                LanguageDefinitionResolver.Resolve(
+                    language.Tag);
 
-            if (!string.IsNullOrWhiteSpace(
-                tag))
+            if (!string.IsNullOrWhiteSpace(resolvedTag))
             {
-                string tagFilePath =
-                    Path.Combine(
-                        PathManager.LanguagesFolder,
-                        Path.GetFileNameWithoutExtension(
-                            tag)
-                        + ".lang");
-
-                if (File.Exists(
-                    tagFilePath))
-                {
-                    return tag;
-                }
+                return resolvedTag;
             }
 
-            string label =
-                language.Label?.Trim();
+            string resolvedLabel =
+                LanguageDefinitionResolver.Resolve(
+                    language.Label);
 
-            if (!string.IsNullOrWhiteSpace(
-                label))
+            if (!string.IsNullOrWhiteSpace(resolvedLabel))
             {
-                string normalizedLabel =
-                    label.ToLowerInvariant();
-
-                string labelFilePath =
-                    Path.Combine(
-                        PathManager.LanguagesFolder,
-                        normalizedLabel
-                        + ".lang");
-
-                if (File.Exists(
-                    labelFilePath))
-                {
-                    return normalizedLabel;
-                }
+                return resolvedLabel;
             }
 
             throw new FileNotFoundException(

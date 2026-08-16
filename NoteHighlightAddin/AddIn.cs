@@ -197,7 +197,14 @@ namespace NoteHighlightAddin
         {
             try
             {
-                tag = control.Tag;
+                string requestedLanguage = control.Tag;
+                string resolvedLanguage =
+                    LanguageDefinitionResolver.Resolve(
+                        requestedLanguage);
+
+                tag = string.IsNullOrWhiteSpace(resolvedLanguage)
+                    ? requestedLanguage
+                    : resolvedLanguage;
 
                 Thread t = new Thread(new ThreadStart(ShowForm));
                 t.SetApartmentState(ApartmentState.STA);
