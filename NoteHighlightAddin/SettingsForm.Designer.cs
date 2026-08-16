@@ -66,6 +66,9 @@ namespace NoteHighlightAddin
             this.btnDuplicateTheme = new System.Windows.Forms.Button();
             this.btnRenameTheme = new System.Windows.Forms.Button();
             this.btnDeleteTheme = new System.Windows.Forms.Button();
+            this.btnResetTheme = new System.Windows.Forms.Button();
+            this.btnExportConfiguration = new System.Windows.Forms.Button();
+            this.btnImportConfiguration = new System.Windows.Forms.Button();
             this.chkThemeBold = new System.Windows.Forms.CheckBox();
             this.chkThemeItalic = new System.Windows.Forms.CheckBox();
             this.lblThemeFormatting = new System.Windows.Forms.Label();
@@ -388,6 +391,36 @@ namespace NoteHighlightAddin
             this.btnDeleteTheme.TabIndex = 43;
             this.btnDeleteTheme.Text = "Delete";
             this.btnDeleteTheme.UseVisualStyleBackColor = true;
+            // 
+            // btnExportConfiguration
+            // 
+            this.btnExportConfiguration.Location = new System.Drawing.Point(368, 16);
+            this.btnExportConfiguration.Name = "btnExportConfiguration";
+            this.btnExportConfiguration.Size = new System.Drawing.Size(102, 23);
+            this.btnExportConfiguration.TabIndex = 47;
+            this.btnExportConfiguration.Text = "Export...";
+            this.btnExportConfiguration.UseVisualStyleBackColor = true;
+            // 
+            // 
+            // btnImportConfiguration
+            // 
+            this.btnImportConfiguration.Location = new System.Drawing.Point(476, 16);
+            this.btnImportConfiguration.Name = "btnImportConfiguration";
+            this.btnImportConfiguration.Size = new System.Drawing.Size(102, 23);
+            this.btnImportConfiguration.TabIndex = 48;
+            this.btnImportConfiguration.Text = "Import...";
+            this.btnImportConfiguration.UseVisualStyleBackColor = true;
+            // 
+            // 
+            // btnResetTheme
+            // 
+            this.btnResetTheme.Enabled = false;
+            this.btnResetTheme.Location = new System.Drawing.Point(14, 116);
+            this.btnResetTheme.Name = "btnResetTheme";
+            this.btnResetTheme.Size = new System.Drawing.Size(170, 23);
+            this.btnResetTheme.TabIndex = 44;
+            this.btnResetTheme.Text = "Reset Theme";
+            this.btnResetTheme.UseVisualStyleBackColor = true;
             // btnChangeThemeColour
             // 
             this.btnChangeThemeColour.Enabled = false;
@@ -519,6 +552,7 @@ namespace NoteHighlightAddin
             this.tabThemeEditor.UseVisualStyleBackColor = true;
             // grpThemeManagement
             // 
+            this.grpThemeManagement.Controls.Add(this.btnResetTheme);
             this.grpThemeManagement.Controls.Add(this.cmbThemes);
             this.grpThemeManagement.Controls.Add(this.lblThemeSelector);
             this.grpThemeManagement.Controls.Add(this.btnDeleteTheme);
@@ -527,7 +561,7 @@ namespace NoteHighlightAddin
             this.grpThemeManagement.Controls.Add(this.btnNewTheme);
             this.grpThemeManagement.Location = new System.Drawing.Point(18, 16);
             this.grpThemeManagement.Name = "grpThemeManagement";
-            this.grpThemeManagement.Size = new System.Drawing.Size(205, 130);
+            this.grpThemeManagement.Size = new System.Drawing.Size(205, 154);
             this.grpThemeManagement.TabIndex = 0;
             this.grpThemeManagement.TabStop = false;
             this.grpThemeManagement.Text = "Theme";
@@ -603,6 +637,8 @@ namespace NoteHighlightAddin
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(760, 705);
+            this.Controls.Add(this.btnImportConfiguration);
+            this.Controls.Add(this.btnExportConfiguration);
             this.Controls.Add(this.grpPreview);
             this.Controls.Add(this.tabSettings);
             this.Controls.Add(this.cbShowTableBorder);
@@ -663,6 +699,9 @@ namespace NoteHighlightAddin
         private Button btnDuplicateTheme;
         private Button btnRenameTheme;
         private Button btnDeleteTheme;
+        private Button btnResetTheme;
+        private Button btnExportConfiguration;
+        private Button btnImportConfiguration;
         private CheckBox chkThemeBold;
         private CheckBox chkThemeItalic;
         private Label lblThemeFormatting;

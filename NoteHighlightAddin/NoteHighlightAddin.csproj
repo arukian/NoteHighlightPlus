@@ -97,6 +97,8 @@
     <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
     <Reference Include="System.Drawing" />
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.IO.Compression.FileSystem" />
     <Reference Include="System.Management" />
     <Reference Include="System.Net" />
     <Reference Include="System.Runtime.Serialization" />
@@ -113,6 +115,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BackgroundColorSelector.cs" />
+    <Compile Include="ColorPickerForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Include="CCOMStreamWrapper.cs" />
     <Compile Include="AddIn.cs" />
     <Compile Include="CodeEditorConfigurator.cs" />
@@ -191,6 +196,8 @@
     <Compile Include="MainFormSettingsBinder.cs" />
     <Compile Include="MainFormSettingsProvider.cs" />
     <Compile Include="NoteHighlightAddin.cs" />
+    <Compile Include="NoteHighlightUiTheme.cs" />
+    <Compile Include="UiStyleManager.cs" />
     <Compile Include="OneNoteHelper.cs" />
     <Compile Include="OneNoteService.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -216,6 +223,9 @@
       <DependentUpon>SettingsForm.cs</DependentUpon>
     </Compile>
     <Compile Include="ThemePreferenceProvider.cs" />
+    <Compile Include="ThemeResetService.cs" />
+    <Compile Include="ConfigurationExportService.cs" />
+    <Compile Include="ConfigurationImportService.cs" />
     <Compile Include="ThemeProvider.cs" />
     <Compile Include="WindowForegroundService.cs" />
   </ItemGroup>

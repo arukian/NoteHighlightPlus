@@ -25,6 +25,8 @@ namespace NoteHighlightAddin
         private static extern bool SetForegroundWindow(IntPtr hWnd);
 
         private LanguageRibbonController _languageRibbonController;
+        private Button _btnLanguageGroupsTab;
+        private Button _btnThemeEditorTab;
         private readonly LanguageEditorViewModel _languageEditor;
         private Button _btnAddKeywordGroup;
         private Button _btnRemoveKeywordGroup;
@@ -41,6 +43,9 @@ namespace NoteHighlightAddin
         private readonly IHighlightThemeReader _themeReader;
         private readonly IHighlightThemeSerializer _themeSerializer;
         private readonly ThemePreferenceProvider _themePreferenceProvider;
+        private readonly ThemeResetService _themeResetService;
+        private readonly ConfigurationExportService _configurationExportService;
+        private readonly ConfigurationImportService _configurationImportService;
         private HighlightTheme _activeTheme;
         private string _activeThemeFilePath;
         private bool _hasUnsavedThemeChanges;
@@ -119,6 +124,15 @@ namespace NoteHighlightAddin
 
             _themePreferenceProvider =
                 new ThemePreferenceProvider();
+
+            _themeResetService =
+                new ThemeResetService();
+
+            _configurationExportService =
+                new ConfigurationExportService();
+
+            _configurationImportService =
+                new ConfigurationImportService();
 
             cmbThemes.SelectedIndexChanged -=
                 cmbThemes_SelectedIndexChanged;
@@ -205,6 +219,24 @@ namespace NoteHighlightAddin
 
             btnDeleteTheme.Click +=
                 btnDeleteTheme_Click;
+
+            btnResetTheme.Click -=
+                btnResetTheme_Click;
+
+            btnResetTheme.Click +=
+                btnResetTheme_Click;
+
+            btnExportConfiguration.Click -=
+                btnExportConfiguration_Click;
+
+            btnExportConfiguration.Click +=
+                btnExportConfiguration_Click;
+
+            btnImportConfiguration.Click -=
+                btnImportConfiguration_Click;
+
+            btnImportConfiguration.Click +=
+                btnImportConfiguration_Click;
 
             chkThemeBold.CheckedChanged -=
                 chkThemeBold_CheckedChanged;
@@ -304,7 +336,1593 @@ namespace NoteHighlightAddin
             UpdateWindowTitle();
             UpdateSaveButtonState();
             ClearThemeStylePreview();
+
+            ApplyModernUi();
         }
+
+
+        private void ApplyModernUi()
+        {
+            Text =
+                "NoteHighlight+ Settings";
+
+            BackColor =
+                NoteHighlightUiTheme.WindowBackground;
+
+            ForeColor =
+                NoteHighlightUiTheme.TextPrimary;
+
+            Font =
+                NoteHighlightUiTheme.CreateBodyFont();
+
+            MinimumSize =
+                new Size(
+                    980,
+                    790);
+
+            ClientSize =
+                new Size(
+                    980,
+                    820);
+
+            UiStyleManager.StyleForm(
+                this);
+
+            CreateSettingsHeader();
+
+            btnFont.Location =
+                new Point(
+                    24,
+                    78);
+
+            btnFont.Size =
+                new Size(
+                    330,
+                    30);
+
+            UiStyleManager.StyleSecondaryButton(
+                btnFont);
+
+            cbShowTableBorder.Location =
+                new Point(
+                    376,
+                    78);
+
+            cbShowTableBorder.Size =
+                new Size(
+                    150,
+                    30);
+
+            cbShowTableBorder.Text =
+                "Show Table Border";
+
+            UiStyleManager.StyleToggleCheckBox(
+                cbShowTableBorder,
+                FontStyle.Regular);
+
+            btnImportConfiguration.Location =
+                new Point(
+                    738,
+                    78);
+
+            btnImportConfiguration.Size =
+                new Size(
+                    100,
+                    30);
+
+            btnImportConfiguration.Text =
+                "Import...";
+
+            UiStyleManager.StyleSecondaryButton(
+                btnImportConfiguration);
+
+            btnExportConfiguration.Location =
+                new Point(
+                    844,
+                    78);
+
+            btnExportConfiguration.Size =
+                new Size(
+                    112,
+                    30);
+
+            btnExportConfiguration.Text =
+                "Export...";
+
+            UiStyleManager.StyleSecondaryButton(
+                btnExportConfiguration);
+
+            tabSettings.Location =
+                new Point(
+                    20,
+                    154);
+
+            tabSettings.Size =
+                new Size(
+                    936,
+                    358);
+
+            tabSettings.Anchor =
+                AnchorStyles.Top |
+                AnchorStyles.Left |
+                AnchorStyles.Right;
+
+            // Keep the existing TabPages and selection logic, but hide the
+            // native WinForms headers. Custom buttons above the control are
+            // used as the visible tabs so Windows cannot draw light borders.
+            tabSettings.Appearance =
+                TabAppearance.FlatButtons;
+
+            tabSettings.SizeMode =
+                TabSizeMode.Fixed;
+
+            tabSettings.ItemSize =
+                new Size(
+                    0,
+                    1);
+
+            tabSettings.DrawMode =
+                TabDrawMode.Normal;
+
+            CreateCustomSettingsTabs();
+
+            tabLanguageGroups.BackColor =
+                NoteHighlightUiTheme.Surface;
+
+            tabThemeEditor.BackColor =
+                NoteHighlightUiTheme.Surface;
+
+            ApplyLanguageGroupsLayout();
+            ApplyThemeEditorLayout();
+            ApplyPreviewLayout();
+            WireModernStateRefresh();
+            RefreshModernControlStates();
+
+            Invalidate(
+                true);
+        }
+
+
+        private void CreateSettingsHeader()
+        {
+            Label title =
+                new Label
+                {
+                    AutoSize =
+                        true,
+
+                    Text =
+                        "NoteHighlight+ Settings",
+
+                    Location =
+                        new Point(
+                            24,
+                            18),
+
+                    ForeColor =
+                        NoteHighlightUiTheme.TextPrimary,
+
+                    BackColor =
+                        Color.Transparent,
+
+                    Font =
+                        new Font(NoteHighlightUiTheme.FontFamily, 16.0f, FontStyle.Bold, GraphicsUnit.Point)
+                };
+
+            Label subtitle =
+                new Label
+                {
+                    AutoSize =
+                        true,
+
+                    Text =
+                        "Manage languages, keyword groups, themes and application preferences.",
+
+                    Location =
+                        new Point(
+                            25,
+                            49),
+
+                    ForeColor =
+                        NoteHighlightUiTheme.TextSecondary,
+
+                    BackColor =
+                        Color.Transparent,
+
+                    Font =
+                        NoteHighlightUiTheme.CreateBodyFont()
+                };
+
+            Controls.Add(
+                title);
+
+            Controls.Add(
+                subtitle);
+
+            title.BringToFront();
+            subtitle.BringToFront();
+        }
+
+
+        private void ApplyLanguageGroupsLayout()
+        {
+            GroupBox keywordEditor =
+                CreateSettingsGroupBox(
+                    "Keyword Groups & Words",
+                    new Rectangle(
+                        14,
+                        14,
+                        486,
+                        330));
+
+            GroupBox groupDetails =
+                CreateSettingsGroupBox(
+                    "Group Details",
+                    new Rectangle(
+                        514,
+                        14,
+                        190,
+                        248));
+
+            GroupBox languages =
+                CreateSettingsGroupBox(
+                    "Languages",
+                    new Rectangle(
+                        718,
+                        14,
+                        190,
+                        330));
+
+            tabLanguageGroups.Controls.Add(
+                keywordEditor);
+
+            tabLanguageGroups.Controls.Add(
+                groupDetails);
+
+            tabLanguageGroups.Controls.Add(
+                languages);
+
+            ReparentControl(
+                lbxKeywordGroups,
+                keywordEditor,
+                new Rectangle(
+                    14,
+                    28,
+                    180,
+                    120));
+
+            ReparentControl(
+                lbxGroupWords,
+                keywordEditor,
+                new Rectangle(
+                    252,
+                    28,
+                    218,
+                    120));
+
+            ReparentControl(
+                _btnMoveKeywordGroupUp,
+                keywordEditor,
+                new Rectangle(
+                    202,
+                    28,
+                    38,
+                    28));
+
+            ReparentControl(
+                _btnMoveKeywordGroupDown,
+                keywordEditor,
+                new Rectangle(
+                    202,
+                    62,
+                    38,
+                    28));
+
+            ReparentControl(
+                _btnAddKeywordGroup,
+                keywordEditor,
+                new Rectangle(
+                    14,
+                    158,
+                    86,
+                    30));
+
+            ReparentControl(
+                _btnRemoveKeywordGroup,
+                keywordEditor,
+                new Rectangle(
+                    108,
+                    158,
+                    86,
+                    30));
+
+            ReparentControl(
+                txtNewGroupWord,
+                keywordEditor,
+                new Rectangle(
+                    252,
+                    158,
+                    218,
+                    24));
+
+            ReparentControl(
+                btnAddGroupWord,
+                keywordEditor,
+                new Rectangle(
+                    252,
+                    192,
+                    103,
+                    30));
+
+            ReparentControl(
+                btnRemoveGroupWord,
+                keywordEditor,
+                new Rectangle(
+                    367,
+                    192,
+                    103,
+                    30));
+
+            ReparentControl(
+                _btnEditGroupRegex,
+                keywordEditor,
+                new Rectangle(
+                    252,
+                    232,
+                    218,
+                    30));
+
+            UiStyleManager.StyleListBox(
+                lbxKeywordGroups);
+
+            UiStyleManager.StyleListBox(
+                lbxGroupWords);
+
+            UiStyleManager.StyleTextBox(
+                txtNewGroupWord);
+
+            UiStyleManager.StyleSecondaryButton(
+                _btnAddKeywordGroup);
+
+            UiStyleManager.StyleSecondaryButton(
+                _btnRemoveKeywordGroup);
+
+            UiStyleManager.StyleSecondaryButton(
+                _btnMoveKeywordGroupUp);
+
+            UiStyleManager.StyleSecondaryButton(
+                _btnMoveKeywordGroupDown);
+
+            UiStyleManager.StyleSecondaryButton(
+                btnAddGroupWord);
+
+            UiStyleManager.StyleSecondaryButton(
+                btnRemoveGroupWord);
+
+            UiStyleManager.StyleSecondaryButton(
+                _btnEditGroupRegex);
+
+            ReparentLabelAndField(
+                lblGroupName,
+                txtGroupName,
+                groupDetails,
+                28);
+
+            ReparentLabelAndField(
+                lblGroupDescription,
+                txtGroupDescription,
+                groupDetails,
+                91);
+
+            lblGroupId.Parent =
+                groupDetails;
+
+            lblGroupId.Location =
+                new Point(
+                    14,
+                    154);
+
+            UiStyleManager.StyleLabel(
+                lblGroupId,
+                true);
+
+            nudGroupId.Parent =
+                groupDetails;
+
+            nudGroupId.Location =
+                new Point(
+                    14,
+                    175);
+
+            nudGroupId.Size =
+                new Size(
+                    160,
+                    24);
+
+            UiStyleManager.StyleNumericUpDown(
+                nudGroupId);
+
+            btnSaveLanguage.Parent =
+                groupDetails;
+
+            btnSaveLanguage.Location =
+                new Point(
+                    14,
+                    207);
+
+            btnSaveLanguage.Size =
+                new Size(
+                    160,
+                    30);
+
+            btnSaveLanguage.Text =
+                "Save Language";
+
+            UiStyleManager.StylePrimaryButton(
+                btnSaveLanguage);
+
+            lblLanguages.Parent =
+                languages;
+
+            lblLanguages.Location =
+                new Point(
+                    14,
+                    28);
+
+            lblLanguages.Text =
+                "Active languages";
+
+            UiStyleManager.StyleLabel(
+                lblLanguages,
+                true);
+
+            ReparentControl(
+                lbxLanguages,
+                languages,
+                new Rectangle(
+                    14,
+                    50,
+                    160,
+                    116));
+
+            UiStyleManager.StyleListBox(
+                lbxLanguages);
+
+            lblAddLanguage.Parent =
+                languages;
+
+            lblAddLanguage.Location =
+                new Point(
+                    14,
+                    176);
+
+            lblAddLanguage.Text =
+                "Add language";
+
+            UiStyleManager.StyleLabel(
+                lblAddLanguage,
+                true);
+
+            ReparentControl(
+                cmbAvailableLanguages,
+                languages,
+                new Rectangle(
+                    14,
+                    198,
+                    160,
+                    24));
+
+            UiStyleManager.StyleComboBox(
+                cmbAvailableLanguages);
+
+            ReparentControl(
+                btnRemoveLanguage,
+                languages,
+                new Rectangle(
+                    14,
+                    232,
+                    160,
+                    36));
+
+            ReparentControl(
+                btnAddLanguage,
+                languages,
+                new Rectangle(
+                    14,
+                    278,
+                    160,
+                    36));
+
+            btnRemoveLanguage.Text =
+                "Remove Selected";
+
+            btnAddLanguage.Text =
+                "Add to Ribbon";
+
+            UiStyleManager.StyleSecondaryButton(
+                btnRemoveLanguage);
+
+            UiStyleManager.StylePrimaryButton(
+                btnAddLanguage);
+
+            keywordEditor.SendToBack();
+            groupDetails.SendToBack();
+            languages.SendToBack();
+        }
+
+
+        private void ApplyThemeEditorLayout()
+        {
+            grpThemeManagement.Location =
+                new Point(
+                    16,
+                    16);
+
+            grpThemeManagement.Size =
+                new Size(
+                    250,
+                    302);
+
+            grpThemeStyleEditor.Location =
+                new Point(
+                    282,
+                    16);
+
+            grpThemeStyleEditor.Size =
+                new Size(
+                    626,
+                    302);
+
+            UiStyleManager.StyleGroupBox(
+                grpThemeManagement);
+
+            UiStyleManager.StyleGroupBox(
+                grpThemeStyleEditor);
+
+            AttachModernGroupBoxBorder(
+                grpThemeManagement);
+
+            AttachModernGroupBoxBorder(
+                grpThemeStyleEditor);
+
+            lblThemeSelector.Location =
+                new Point(
+                    16,
+                    30);
+
+            UiStyleManager.StyleLabel(
+                lblThemeSelector,
+                true);
+
+            cmbThemes.Location =
+                new Point(
+                    16,
+                    52);
+
+            cmbThemes.Size =
+                new Size(
+                    216,
+                    24);
+
+            UiStyleManager.StyleComboBox(
+                cmbThemes);
+
+            SetControlBounds(
+                btnNewTheme,
+                16,
+                90,
+                102,
+                30);
+
+            SetControlBounds(
+                btnDuplicateTheme,
+                130,
+                90,
+                102,
+                30);
+
+            SetControlBounds(
+                btnRenameTheme,
+                16,
+                130,
+                102,
+                30);
+
+            SetControlBounds(
+                btnDeleteTheme,
+                130,
+                130,
+                102,
+                30);
+
+            SetControlBounds(
+                btnResetTheme,
+                16,
+                176,
+                216,
+                30);
+
+            UiStyleManager.StyleSecondaryButton(
+                btnNewTheme);
+
+            UiStyleManager.StyleSecondaryButton(
+                btnDuplicateTheme);
+
+            UiStyleManager.StyleSecondaryButton(
+                btnRenameTheme);
+
+            UiStyleManager.StyleDangerButton(
+                btnDeleteTheme);
+
+            UiStyleManager.StyleSecondaryButton(
+                btnResetTheme);
+
+            lblThemeStyleTarget.Location =
+                new Point(
+                    18,
+                    30);
+
+            UiStyleManager.StyleLabel(
+                lblThemeStyleTarget,
+                true);
+
+            cmbThemeStyleTarget.Location =
+                new Point(
+                    18,
+                    52);
+
+            cmbThemeStyleTarget.Size =
+                new Size(
+                    588,
+                    24);
+
+            UiStyleManager.StyleComboBox(
+                cmbThemeStyleTarget);
+
+            lblThemeGroupName.Location =
+                new Point(
+                    18,
+                    88);
+
+            lblThemeUses.Location =
+                new Point(
+                    18,
+                    110);
+
+            lblThemeStyleSlot.Location =
+                new Point(
+                    18,
+                    132);
+
+            UiStyleManager.StyleLabel(
+                lblThemeGroupName,
+                false);
+
+            UiStyleManager.StyleLabel(
+                lblThemeUses,
+                true);
+
+            UiStyleManager.StyleLabel(
+                lblThemeStyleSlot,
+                true);
+
+            lblGroupColour.Location =
+                new Point(
+                    18,
+                    164);
+
+            UiStyleManager.StyleLabel(
+                lblGroupColour,
+                true);
+
+            pnlGroupColourPreview.Location =
+                new Point(
+                    18,
+                    186);
+
+            pnlGroupColourPreview.Size =
+                new Size(
+                    46,
+                    26);
+
+            lblGroupColourValue.Location =
+                new Point(
+                    76,
+                    192);
+
+            UiStyleManager.StyleLabel(
+                lblGroupColourValue,
+                false);
+
+            btnChangeThemeColour.Location =
+                new Point(
+                    196,
+                    184);
+
+            btnChangeThemeColour.Size =
+                new Size(
+                    102,
+                    30);
+
+            UiStyleManager.StyleSecondaryButton(
+                btnChangeThemeColour);
+
+            lblThemeFormatting.Location =
+                new Point(
+                    18,
+                    232);
+
+            UiStyleManager.StyleLabel(
+                lblThemeFormatting,
+                true);
+
+            chkThemeBold.Location =
+                new Point(
+                    18,
+                    250);
+
+            chkThemeBold.Size =
+                new Size(
+                    54,
+                    30);
+
+            chkThemeBold.Text =
+                "B";
+
+            chkThemeItalic.Location =
+                new Point(
+                    80,
+                    250);
+
+            chkThemeItalic.Size =
+                new Size(
+                    54,
+                    30);
+
+            chkThemeItalic.Text =
+                "I";
+
+            UiStyleManager.StyleToggleCheckBox(
+                chkThemeBold,
+                FontStyle.Bold);
+
+            UiStyleManager.StyleToggleCheckBox(
+                chkThemeItalic,
+                FontStyle.Italic);
+
+            btnSaveTheme.Location =
+                new Point(
+                    486,
+                    248);
+
+            btnSaveTheme.Size =
+                new Size(
+                    120,
+                    34);
+
+            UiStyleManager.StylePrimaryButton(
+                btnSaveTheme);
+
+            lblThemeStyleStatus.Location =
+                new Point(
+                    314,
+                    190);
+
+            UiStyleManager.StyleLabel(
+                lblThemeStyleStatus,
+                true);
+        }
+
+
+        private void ApplyPreviewLayout()
+        {
+            grpPreview.Location =
+                new Point(
+                    20,
+                    528);
+
+            grpPreview.Size =
+                new Size(
+                    936,
+                    266);
+
+            grpPreview.Anchor =
+                AnchorStyles.Top |
+                AnchorStyles.Bottom |
+                AnchorStyles.Left |
+                AnchorStyles.Right;
+
+            UiStyleManager.StyleGroupBox(
+                grpPreview);
+
+            AttachModernGroupBoxBorder(
+                grpPreview);
+
+            lblPreviewStatus.Location =
+                new Point(
+                    14,
+                    27);
+
+            lblPreviewStatus.Font =
+                NoteHighlightUiTheme.CreateSmallFont();
+
+            UiStyleManager.StyleLabel(
+                lblPreviewStatus,
+                true);
+
+            pnlPreview.Location =
+                new Point(
+                    14,
+                    50);
+
+            pnlPreview.Size =
+                new Size(
+                    908,
+                    198);
+
+            pnlPreview.Anchor =
+                AnchorStyles.Top |
+                AnchorStyles.Bottom |
+                AnchorStyles.Left |
+                AnchorStyles.Right;
+
+            pnlPreview.BorderStyle =
+                BorderStyle.None;
+
+            pnlPreview.BackColor =
+                NoteHighlightUiTheme.SurfaceRaised;
+
+            pnlPreview.Paint -=
+                ModernPanelBorder_Paint;
+
+            pnlPreview.Paint +=
+                ModernPanelBorder_Paint;
+        }
+
+
+        private void WireModernStateRefresh()
+        {
+            Control[] controls =
+            {
+                _btnRemoveKeywordGroup,
+                _btnMoveKeywordGroupUp,
+                _btnMoveKeywordGroupDown,
+                _btnEditGroupRegex,
+                btnAddGroupWord,
+                btnRemoveGroupWord,
+                btnSaveLanguage,
+                btnRemoveLanguage,
+                btnAddLanguage,
+                btnNewTheme,
+                btnDuplicateTheme,
+                btnRenameTheme,
+                btnDeleteTheme,
+                btnResetTheme,
+                btnChangeThemeColour,
+                btnSaveTheme
+            };
+
+            foreach (Control control
+                in controls)
+            {
+                if (control == null)
+                {
+                    continue;
+                }
+
+                control.EnabledChanged -=
+                    ModernControl_EnabledChanged;
+
+                control.EnabledChanged +=
+                    ModernControl_EnabledChanged;
+            }
+        }
+
+
+        private void ModernControl_EnabledChanged(
+            object sender,
+            EventArgs e)
+        {
+            RefreshModernControlStates();
+        }
+
+
+        private void RefreshModernControlStates()
+        {
+            ApplyModernButtonState(
+                _btnRemoveKeywordGroup,
+                false);
+
+            ApplyModernButtonState(
+                _btnMoveKeywordGroupUp,
+                false);
+
+            ApplyModernButtonState(
+                _btnMoveKeywordGroupDown,
+                false);
+
+            ApplyModernButtonState(
+                _btnEditGroupRegex,
+                false);
+
+            ApplyModernButtonState(
+                btnAddGroupWord,
+                false);
+
+            ApplyModernButtonState(
+                btnRemoveGroupWord,
+                false);
+
+            ApplyModernButtonState(
+                btnSaveLanguage,
+                true);
+
+            ApplyModernButtonState(
+                btnRemoveLanguage,
+                false);
+
+            ApplyModernButtonState(
+                btnAddLanguage,
+                true);
+
+            ApplyModernButtonState(
+                btnNewTheme,
+                false);
+
+            ApplyModernButtonState(
+                btnDuplicateTheme,
+                false);
+
+            ApplyModernButtonState(
+                btnRenameTheme,
+                false);
+
+            ApplyModernButtonState(
+                btnDeleteTheme,
+                false,
+                true);
+
+            ApplyModernButtonState(
+                btnResetTheme,
+                false);
+
+            ApplyModernButtonState(
+                btnChangeThemeColour,
+                false);
+
+            ApplyModernButtonState(
+                btnSaveTheme,
+                true);
+        }
+
+
+        private static void ApplyModernButtonState(
+            Button button,
+            bool primary,
+            bool danger = false)
+        {
+            if (button == null)
+            {
+                return;
+            }
+
+            if (!button.Enabled)
+            {
+                button.BackColor =
+                    NoteHighlightUiTheme.DisabledBackground;
+
+                button.ForeColor =
+                    NoteHighlightUiTheme.DisabledText;
+
+                button.FlatAppearance.BorderColor =
+                    NoteHighlightUiTheme.Border;
+
+                return;
+            }
+
+            if (danger)
+            {
+                UiStyleManager.StyleDangerButton(
+                    button);
+            }
+            else if (primary)
+            {
+                UiStyleManager.StylePrimaryButton(
+                    button);
+            }
+            else
+            {
+                UiStyleManager.StyleSecondaryButton(
+                    button);
+            }
+        }
+
+
+        private void CreateTabContentBorderMask()
+        {
+            int contentTop =
+                tabSettings.Top +
+                tabSettings.ItemSize.Height;
+
+            Panel leftMask =
+                CreateTabBorderMaskPanel(
+                    new Rectangle(
+                        tabSettings.Left,
+                        contentTop,
+                        4,
+                        tabSettings.Height -
+                        tabSettings.ItemSize.Height));
+
+            Panel rightMask =
+                CreateTabBorderMaskPanel(
+                    new Rectangle(
+                        tabSettings.Right - 4,
+                        contentTop,
+                        4,
+                        tabSettings.Height -
+                        tabSettings.ItemSize.Height));
+
+            Panel bottomMask =
+                CreateTabBorderMaskPanel(
+                    new Rectangle(
+                        tabSettings.Left,
+                        tabSettings.Bottom - 4,
+                        tabSettings.Width,
+                        4));
+
+            Panel topMask =
+                CreateTabBorderMaskPanel(
+                    new Rectangle(
+                        tabSettings.Left + 300,
+                        contentTop,
+                        Math.Max(
+                            0,
+                            tabSettings.Width - 300),
+                        4));
+
+            Panel headerSeamMask =
+                CreateTabBorderMaskPanel(
+                    new Rectangle(
+                        tabSettings.Left,
+                        contentTop - 2,
+                        tabSettings.Width,
+                        4));
+
+            leftMask.Anchor =
+                AnchorStyles.Top |
+                AnchorStyles.Bottom |
+                AnchorStyles.Left;
+
+            rightMask.Anchor =
+                AnchorStyles.Top |
+                AnchorStyles.Bottom |
+                AnchorStyles.Right;
+
+            bottomMask.Anchor =
+                AnchorStyles.Left |
+                AnchorStyles.Right |
+                AnchorStyles.Top;
+
+            topMask.Anchor =
+                AnchorStyles.Top |
+                AnchorStyles.Left |
+                AnchorStyles.Right;
+
+            headerSeamMask.Anchor =
+                AnchorStyles.Top |
+                AnchorStyles.Left |
+                AnchorStyles.Right;
+
+            headerSeamMask.BringToFront();
+        }
+
+
+        private Panel CreateTabBorderMaskPanel(
+            Rectangle bounds)
+        {
+            Panel panel =
+                new Panel
+                {
+                    BackColor =
+                        NoteHighlightUiTheme.WindowBackground,
+
+                    Bounds =
+                        bounds,
+
+                    TabStop =
+                        false
+                };
+
+            Controls.Add(
+                panel);
+
+            panel.BringToFront();
+
+            return panel;
+        }
+
+
+        private void CreateCustomSettingsTabs()
+        {
+            _btnLanguageGroupsTab =
+                new Button
+                {
+                    Name =
+                        "btnLanguageGroupsTab",
+
+                    Text =
+                        "Language & Groups",
+
+                    Location =
+                        new Point(
+                            20,
+                            122),
+
+                    Size =
+                        new Size(
+                            154,
+                            32),
+
+                    TabStop =
+                        false
+                };
+
+            _btnThemeEditorTab =
+                new Button
+                {
+                    Name =
+                        "btnThemeEditorTab",
+
+                    Text =
+                        "Theme Editor",
+
+                    Location =
+                        new Point(
+                            180,
+                            122),
+
+                    Size =
+                        new Size(
+                            140,
+                            32),
+
+                    TabStop =
+                        false
+                };
+
+            Controls.Add(
+                _btnLanguageGroupsTab);
+
+            Controls.Add(
+                _btnThemeEditorTab);
+
+            _btnLanguageGroupsTab.Click -=
+                CustomSettingsTab_Click;
+
+            _btnLanguageGroupsTab.Click +=
+                CustomSettingsTab_Click;
+
+            _btnThemeEditorTab.Click -=
+                CustomSettingsTab_Click;
+
+            _btnThemeEditorTab.Click +=
+                CustomSettingsTab_Click;
+
+            tabSettings.SelectedIndexChanged -=
+                CustomSettingsTabSelectionChanged;
+
+            tabSettings.SelectedIndexChanged +=
+                CustomSettingsTabSelectionChanged;
+
+            _btnLanguageGroupsTab.BringToFront();
+            _btnThemeEditorTab.BringToFront();
+
+            RefreshCustomSettingsTabs();
+        }
+
+
+        private void CustomSettingsTab_Click(
+            object sender,
+            EventArgs e)
+        {
+            if (sender == _btnLanguageGroupsTab)
+            {
+                tabSettings.SelectedTab =
+                    tabLanguageGroups;
+            }
+            else if (sender == _btnThemeEditorTab)
+            {
+                tabSettings.SelectedTab =
+                    tabThemeEditor;
+            }
+        }
+
+
+        private void CustomSettingsTabSelectionChanged(
+            object sender,
+            EventArgs e)
+        {
+            RefreshCustomSettingsTabs();
+        }
+
+
+        private void RefreshCustomSettingsTabs()
+        {
+            ApplyCustomTabButtonState(
+                _btnLanguageGroupsTab,
+                tabSettings.SelectedTab ==
+                    tabLanguageGroups);
+
+            ApplyCustomTabButtonState(
+                _btnThemeEditorTab,
+                tabSettings.SelectedTab ==
+                    tabThemeEditor);
+        }
+
+
+        private static void ApplyCustomTabButtonState(
+            Button button,
+            bool selected)
+        {
+            if (button == null)
+            {
+                return;
+            }
+
+            button.FlatStyle =
+                FlatStyle.Flat;
+
+            button.FlatAppearance.BorderSize =
+                1;
+
+            button.Font =
+                NoteHighlightUiTheme.CreateBodyFont();
+
+            button.ForeColor =
+                NoteHighlightUiTheme.TextPrimary;
+
+            if (selected)
+            {
+                button.BackColor =
+                    NoteHighlightUiTheme.SurfaceRaised;
+
+                button.FlatAppearance.BorderColor =
+                    NoteHighlightUiTheme.Accent;
+
+                button.FlatAppearance.MouseOverBackColor =
+                    NoteHighlightUiTheme.SurfaceHover;
+
+                button.FlatAppearance.MouseDownBackColor =
+                    NoteHighlightUiTheme.AccentPressed;
+            }
+            else
+            {
+                button.BackColor =
+                    NoteHighlightUiTheme.WindowBackground;
+
+                button.FlatAppearance.BorderColor =
+                    NoteHighlightUiTheme.Border;
+
+                button.FlatAppearance.MouseOverBackColor =
+                    NoteHighlightUiTheme.SurfaceHover;
+
+                button.FlatAppearance.MouseDownBackColor =
+                    NoteHighlightUiTheme.AccentPressed;
+            }
+
+            button.UseVisualStyleBackColor =
+                false;
+        }
+
+
+        private void CreateTabHeaderBackground()
+        {
+            Panel tabHeaderBackground =
+                new Panel
+                {
+                    Name =
+                        "pnlTabHeaderBackground",
+
+                    BackColor =
+                        NoteHighlightUiTheme.WindowBackground,
+
+                    Location =
+                        new Point(
+                            tabSettings.Left + 302,
+                            tabSettings.Top),
+
+                    Size =
+                        new Size(
+                            Math.Max(
+                                0,
+                                tabSettings.Width - 302),
+                            31),
+
+                    Anchor =
+                        AnchorStyles.Top |
+                        AnchorStyles.Left |
+                        AnchorStyles.Right
+                };
+
+            Controls.Add(
+                tabHeaderBackground);
+
+            tabHeaderBackground.BringToFront();
+        }
+
+
+        private void AttachModernGroupBoxBorder(
+            GroupBox groupBox)
+        {
+            if (groupBox == null)
+            {
+                return;
+            }
+
+            groupBox.Paint -=
+                ModernGroupBox_Paint;
+
+            groupBox.Paint +=
+                ModernGroupBox_Paint;
+        }
+
+
+        private void ModernGroupBox_Paint(
+            object sender,
+            PaintEventArgs e)
+        {
+            GroupBox groupBox =
+                sender as GroupBox;
+
+            if (groupBox == null ||
+                groupBox.Width < 4 ||
+                groupBox.Height < 4)
+            {
+                return;
+            }
+
+            Color background =
+                groupBox.BackColor;
+
+            string caption =
+                groupBox.Text ?? string.Empty;
+
+            Size textSize =
+                TextRenderer.MeasureText(
+                    caption,
+                    groupBox.Font);
+
+            int captionLeft =
+                10;
+
+            int borderTop =
+                Math.Max(
+                    8,
+                    textSize.Height / 2);
+
+            using (SolidBrush eraseBrush =
+                new SolidBrush(
+                    background))
+            {
+                e.Graphics.FillRectangle(
+                    eraseBrush,
+                    0,
+                    0,
+                    groupBox.Width,
+                    borderTop + 2);
+
+                e.Graphics.FillRectangle(
+                    eraseBrush,
+                    0,
+                    borderTop,
+                    3,
+                    groupBox.Height - borderTop);
+
+                e.Graphics.FillRectangle(
+                    eraseBrush,
+                    groupBox.Width - 3,
+                    borderTop,
+                    3,
+                    groupBox.Height - borderTop);
+
+                e.Graphics.FillRectangle(
+                    eraseBrush,
+                    0,
+                    groupBox.Height - 3,
+                    groupBox.Width,
+                    3);
+            }
+
+            using (Pen borderPen =
+                new Pen(
+                    NoteHighlightUiTheme.Border))
+            {
+                e.Graphics.DrawLine(
+                    borderPen,
+                    1,
+                    borderTop,
+                    captionLeft - 3,
+                    borderTop);
+
+                e.Graphics.DrawLine(
+                    borderPen,
+                    captionLeft + textSize.Width + 3,
+                    borderTop,
+                    groupBox.Width - 2,
+                    borderTop);
+
+                e.Graphics.DrawLine(
+                    borderPen,
+                    1,
+                    borderTop,
+                    1,
+                    groupBox.Height - 2);
+
+                e.Graphics.DrawLine(
+                    borderPen,
+                    groupBox.Width - 2,
+                    borderTop,
+                    groupBox.Width - 2,
+                    groupBox.Height - 2);
+
+                e.Graphics.DrawLine(
+                    borderPen,
+                    1,
+                    groupBox.Height - 2,
+                    groupBox.Width - 2,
+                    groupBox.Height - 2);
+            }
+
+            TextRenderer.DrawText(
+                e.Graphics,
+                caption,
+                groupBox.Font,
+                new Point(
+                    captionLeft,
+                    0),
+                NoteHighlightUiTheme.TextPrimary,
+                TextFormatFlags.NoPadding);
+        }
+
+
+        private void ModernPanelBorder_Paint(
+            object sender,
+            PaintEventArgs e)
+        {
+            Panel panel =
+                sender as Panel;
+
+            if (panel == null ||
+                panel.Width < 2 ||
+                panel.Height < 2)
+            {
+                return;
+            }
+
+            using (Pen borderPen =
+                new Pen(
+                    NoteHighlightUiTheme.Border))
+            {
+                e.Graphics.DrawRectangle(
+                    borderPen,
+                    0,
+                    0,
+                    panel.Width - 1,
+                    panel.Height - 1);
+            }
+        }
+
+
+        private GroupBox CreateSettingsGroupBox(
+            string text,
+            Rectangle bounds)
+        {
+            GroupBox groupBox =
+                new GroupBox
+                {
+                    Text =
+                        text,
+
+                    Location =
+                        bounds.Location,
+
+                    Size =
+                        bounds.Size,
+
+                    BackColor =
+                        NoteHighlightUiTheme.Surface,
+
+                    ForeColor =
+                        NoteHighlightUiTheme.TextPrimary,
+
+                    Font =
+                        NoteHighlightUiTheme.CreateBodyFont()
+                };
+
+            UiStyleManager.StyleGroupBox(
+                groupBox);
+
+            AttachModernGroupBoxBorder(
+                groupBox);
+
+            return groupBox;
+        }
+
+
+        private static void ReparentControl(
+            Control control,
+            Control parent,
+            Rectangle bounds)
+        {
+            control.Parent =
+                parent;
+
+            control.Location =
+                bounds.Location;
+
+            control.Size =
+                bounds.Size;
+
+            control.Anchor =
+                AnchorStyles.Top |
+                AnchorStyles.Left;
+        }
+
+
+        private static void SetControlBounds(
+            Control control,
+            int left,
+            int top,
+            int width,
+            int height)
+        {
+            control.Location =
+                new Point(
+                    left,
+                    top);
+
+            control.Size =
+                new Size(
+                    width,
+                    height);
+        }
+
+
+        private static void ReparentLabelAndField(
+            Label label,
+            TextBox field,
+            Control parent,
+            int top)
+        {
+            label.Parent =
+                parent;
+
+            label.Location =
+                new Point(
+                    14,
+                    top);
+
+            UiStyleManager.StyleLabel(
+                label,
+                true);
+
+            field.Parent =
+                parent;
+
+            field.Location =
+                new Point(
+                    14,
+                    top + 22);
+
+            field.Size =
+                new Size(
+                    160,
+                    24);
+
+            UiStyleManager.StyleTextBox(
+                field);
+        }
+
 
         // adding call to save functionality to save the language configuration when the save button is clicked
         private void btnSaveLanguage_Click(object sender, EventArgs e)
@@ -937,6 +2555,13 @@ namespace NoteHighlightAddin
 
                 _activeThemeFilePath =
                     themePath;
+
+                // Capture the theme's reset point the first time it is loaded.
+                // The baseline lives outside highlight/themes so normal saves do
+                // not overwrite it.
+                _themeResetService.EnsureBaseline(
+                    selectedThemeName,
+                    themePath);
 
                 _hasUnsavedThemeChanges =
                     false;
@@ -1753,26 +3378,18 @@ namespace NoteHighlightAddin
                 return;
             }
 
-            Color currentColour;
+            Color currentColour =
+                Color.Black;
 
-            using (var colourDialog =
-                new ColorDialog())
+            TryParseThemeColour(
+                style.Colour,
+                out currentColour);
+
+            using (ColorPickerForm picker =
+                new ColorPickerForm(
+                    currentColour))
             {
-                colourDialog.AnyColor =
-                    true;
-
-                colourDialog.FullOpen =
-                    true;
-
-                if (TryParseThemeColour(
-                    style.Colour,
-                    out currentColour))
-                {
-                    colourDialog.Color =
-                        currentColour;
-                }
-
-                if (colourDialog.ShowDialog(
+                if (picker.ShowDialog(
                     this) != DialogResult.OK)
                 {
                     return;
@@ -1780,7 +3397,7 @@ namespace NoteHighlightAddin
 
                 style.Colour =
                     ToThemeColour(
-                        colourDialog.Color);
+                        picker.SelectedColor);
 
                 // A direct edit should affect only this style.
                 // If the original colour came from a shared variable,
@@ -1799,6 +3416,7 @@ namespace NoteHighlightAddin
 
             RequestPreviewRefresh();
         }
+
 
         private void btnNewTheme_Click(
             object sender,
@@ -2349,6 +3967,321 @@ namespace NoteHighlightAddin
                     + Environment.NewLine
                     + exception.Message,
                     "Rename Theme",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+            }
+        }
+
+        private void btnImportConfiguration_Click(
+            object sender,
+            EventArgs e)
+        {
+            if (!ConfirmPendingLanguageChanges() ||
+                !ConfirmPendingThemeChanges())
+            {
+                return;
+            }
+
+            using (OpenFileDialog dialog =
+                new OpenFileDialog())
+            {
+                dialog.Title =
+                    "Import NoteHighlight+ Configuration";
+
+                dialog.Filter =
+                    "NoteHighlight+ Backup (*.zip)|*.zip";
+
+                dialog.CheckFileExists =
+                    true;
+
+                dialog.Multiselect =
+                    false;
+
+                if (dialog.ShowDialog(this) !=
+                    DialogResult.OK)
+                {
+                    return;
+                }
+
+                try
+                {
+                    ConfigurationImportPlan plan =
+                        _configurationImportService.Analyze(
+                            dialog.FileName);
+
+                    bool overwriteExisting =
+                        false;
+
+                    if (plan.ExistingFiles > 0)
+                    {
+                        DialogResult conflictChoice =
+                            MessageBox.Show(
+                                this,
+                                "The backup contains " +
+                                plan.TotalFiles +
+                                " configuration file(s)." +
+                                Environment.NewLine +
+                                Environment.NewLine +
+                                plan.ExistingFiles +
+                                " file(s) already exist." +
+                                Environment.NewLine +
+                                plan.NewFiles +
+                                " file(s) are new." +
+                                Environment.NewLine +
+                                Environment.NewLine +
+                                "Yes = overwrite existing files and import everything" +
+                                Environment.NewLine +
+                                "No = import only new files" +
+                                Environment.NewLine +
+                                "Cancel = do not import",
+                                "Import Configuration",
+                                MessageBoxButtons.YesNoCancel,
+                                MessageBoxIcon.Warning,
+                                MessageBoxDefaultButton.Button3);
+
+                        if (conflictChoice ==
+                            DialogResult.Cancel)
+                        {
+                            return;
+                        }
+
+                        overwriteExisting =
+                            conflictChoice == DialogResult.Yes;
+                    }
+                    else
+                    {
+                        DialogResult confirmation =
+                            MessageBox.Show(
+                                this,
+                                "Import " +
+                                plan.TotalFiles +
+                                " configuration file(s) from this backup?",
+                                "Import Configuration",
+                                MessageBoxButtons.YesNo,
+                                MessageBoxIcon.Question,
+                                MessageBoxDefaultButton.Button1);
+
+                        if (confirmation !=
+                            DialogResult.Yes)
+                        {
+                            return;
+                        }
+                    }
+
+                    ConfigurationImportResult result =
+                        _configurationImportService.Import(
+                            dialog.FileName,
+                            overwriteExisting);
+
+                    ReloadConfigurationAfterImport();
+
+                    string message =
+                        "Configuration imported successfully." +
+                        Environment.NewLine +
+                        Environment.NewLine +
+                        "Imported: " +
+                        result.ImportedFiles +
+                        Environment.NewLine +
+                        "Skipped: " +
+                        result.SkippedFiles;
+
+                    if (result.RibbonConfigurationImported)
+                    {
+                        message +=
+                            Environment.NewLine +
+                            Environment.NewLine +
+                            "Restart OneNote to apply imported Ribbon language visibility.";
+                    }
+
+                    MessageBox.Show(
+                        this,
+                        message,
+                        "Import Configuration",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Information);
+                }
+                catch (Exception exception)
+                {
+                    MessageBox.Show(
+                        this,
+                        "The configuration could not be imported." +
+                        Environment.NewLine +
+                        Environment.NewLine +
+                        exception.Message,
+                        "Import Configuration",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        private void ReloadConfigurationAfterImport()
+        {
+            _languageRibbonController.RefreshLanguageList();
+            _languageRibbonController.LoadSelectedLanguageConfiguration();
+
+            LoadAvailableThemes();
+
+            _previousLanguageIndex =
+                lbxLanguages.SelectedIndex;
+
+            UpdateWindowTitle();
+            UpdateSaveButtonState();
+            UpdateSaveThemeButtonState();
+
+            RequestPreviewRefresh();
+        }
+
+        private void btnExportConfiguration_Click(
+            object sender,
+            EventArgs e)
+        {
+            using (SaveFileDialog dialog =
+                new SaveFileDialog())
+            {
+                dialog.Title =
+                    "Export NoteHighlight+ Configuration";
+
+                dialog.Filter =
+                    "NoteHighlight+ Backup (*.zip)|*.zip";
+
+                dialog.DefaultExt =
+                    "zip";
+
+                dialog.AddExtension =
+                    true;
+
+                dialog.OverwritePrompt =
+                    true;
+
+                dialog.FileName =
+                    "NoteHighlightPlus-Backup-" +
+                    DateTime.Now.ToString("yyyy-MM-dd") +
+                    ".zip";
+
+                if (dialog.ShowDialog(this) !=
+                    DialogResult.OK)
+                {
+                    return;
+                }
+
+                try
+                {
+                    _configurationExportService.Export(
+                        dialog.FileName);
+
+                    MessageBox.Show(
+                        this,
+                        "Configuration exported successfully.",
+                        "Export Configuration",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Information);
+                }
+                catch (Exception exception)
+                {
+                    MessageBox.Show(
+                        this,
+                        "The configuration could not be exported." +
+                        Environment.NewLine +
+                        Environment.NewLine +
+                        exception.Message,
+                        "Export Configuration",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Error);
+                }
+            }
+        }
+
+
+
+        private void btnResetTheme_Click(
+            object sender,
+            EventArgs e)
+        {
+            if (_activeTheme == null ||
+                string.IsNullOrWhiteSpace(
+                    _activeThemeFilePath))
+            {
+                return;
+            }
+
+            string themeName =
+                cmbThemes.SelectedItem as string;
+
+            if (string.IsNullOrWhiteSpace(
+                themeName))
+            {
+                themeName =
+                    _activeTheme.Name;
+            }
+
+            if (!_themeResetService.CanReset(
+                themeName))
+            {
+                MessageBox.Show(
+                    this,
+                    "No reset point is available for theme '"
+                    + themeName
+                    + "'.",
+                    "Reset Theme",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+
+                return;
+            }
+
+            DialogResult result =
+                MessageBox.Show(
+                    this,
+                    "Reset theme '"
+                    + themeName
+                    + "'?"
+                    + Environment.NewLine
+                    + Environment.NewLine
+                    + "This will discard saved and unsaved changes made "
+                    + "since its reset point was created.",
+                    "Reset Theme",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Warning,
+                    MessageBoxDefaultButton.Button2);
+
+            if (result != DialogResult.Yes)
+            {
+                return;
+            }
+
+            try
+            {
+                _themeResetService.RestoreBaseline(
+                    themeName,
+                    _activeThemeFilePath);
+
+                _hasUnsavedThemeChanges =
+                    false;
+
+                ReloadThemesAndSelect(
+                    themeName);
+
+                RequestPreviewRefresh();
+
+                MessageBox.Show(
+                    this,
+                    "Theme '"
+                    + themeName
+                    + "' was reset successfully.",
+                    "Reset Theme",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+            }
+            catch (Exception exception)
+            {
+                MessageBox.Show(
+                    this,
+                    "The theme could not be reset."
+                    + Environment.NewLine
+                    + Environment.NewLine
+                    + exception.Message,
+                    "Reset Theme",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Error);
             }
@@ -3081,6 +5014,11 @@ namespace NoteHighlightAddin
             btnDeleteTheme.Enabled =
                 _activeTheme != null &&
                 cmbThemes.Items.Count > 1;
+
+            btnResetTheme.Enabled =
+                _activeTheme != null &&
+                _themeResetService.CanReset(
+                    cmbThemes.SelectedItem as string);
         }
 
 

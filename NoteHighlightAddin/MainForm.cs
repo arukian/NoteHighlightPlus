@@ -49,6 +49,7 @@ namespace NoteHighlightAddin
         private bool _previewRefreshPending;
         private bool _isGeneratingPreview;
         private bool _previewEventsConnected;
+        private bool _hasBackgroundOverride;
 
         public HighLightParameter Parameters { get; private set; }
 
@@ -93,6 +94,7 @@ namespace NoteHighlightAddin
             _previewFiles = new List<string>();
 
             InitializeComponent();
+            ApplyModernAppearance();
 
             txtCode.Text = selectedText;
             FormClosed += SettingsForm_FormClosed;
@@ -123,6 +125,8 @@ namespace NoteHighlightAddin
                     btnBackground,
                     cbx_Clipboard,
                     cbx_lineNumber);
+
+                UpdateBackgroundDisplay();
 
                 if (!_quickStyle)
                 {
@@ -182,6 +186,9 @@ namespace NoteHighlightAddin
 
                 HighlightWorkflowResult result = _workflowService.Execute(request);
 
+                ApplyBackgroundOverrideToGeneratedHtml(
+                    result.OutputFileName);
+
                 Parameters = result.Parameters;
 
                 Close();
@@ -222,12 +229,35 @@ namespace NoteHighlightAddin
 
         private void PickColorToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            Color previousColor = btnBackground.BackColor;
+            Color previousColor =
+                btnBackground.BackColor;
 
-            _backgroundColorSelector.PickColor(btnBackground, colorDialog1);
+            Color initialColor =
+                previousColor == Color.Transparent ||
+                previousColor.A == 0
+                    ? Color.White
+                    : previousColor;
+
+            using (ColorPickerForm picker =
+                new ColorPickerForm(
+                    initialColor))
+            {
+                if (picker.ShowDialog(this) !=
+                    DialogResult.OK)
+                {
+                    return;
+                }
+
+                btnBackground.BackColor =
+                    picker.SelectedColor;
+
+                _hasBackgroundOverride =
+                    true;
+            }
 
             if (previousColor != btnBackground.BackColor)
             {
+                UpdateBackgroundDisplay();
                 RequestPreviewRefresh();
             }
         }
@@ -235,8 +265,374 @@ namespace NoteHighlightAddin
         private void TransparentToolStripMenuItem_Click(object sender, EventArgs e)
         {
             _backgroundColorSelector.SetTransparent(btnBackground);
+
+            _hasBackgroundOverride =
+                true;
+
+            UpdateBackgroundDisplay();
             RequestPreviewRefresh();
         }
+
+
+        private void ApplyModernAppearance()
+        {
+            UiStyleManager.StyleForm(this);
+
+            UiStyleManager.StylePanel(pnlHeader, false);
+            UiStyleManager.StylePanel(pnlOptions, true);
+            UiStyleManager.StylePanel(panel3, false);
+            UiStyleManager.StylePanel(panel2, true);
+            UiStyleManager.StylePanel(pnlEditorCard, true);
+            UiStyleManager.StylePanel(pnlEditorHeader, false);
+            UiStyleManager.StylePanel(pnlPreviewCard, true);
+            UiStyleManager.StylePanel(pnlPreviewHeader, false);
+            UiStyleManager.StylePanel(pnlLivePreview, false);
+
+            UiStyleManager.StyleLabel(lblTitle, false);
+            lblTitle.Font = new Font(
+                NoteHighlightUiTheme.FontFamily,
+                15.5f,
+                FontStyle.Bold,
+                GraphicsUnit.Point);
+
+            UiStyleManager.StyleLabel(lblSubtitle, true);
+            UiStyleManager.StyleLabel(lblTheme, true);
+            UiStyleManager.StyleSectionLabel(lblEditorTitle);
+            UiStyleManager.StyleSectionLabel(lblLivePreviewTitle);
+            UiStyleManager.StyleLabel(lblPreviewStatus, true);
+            lblPreviewStatus.Font =
+                NoteHighlightUiTheme.CreateSmallFont();
+            UiStyleManager.StyleLabel(lblBackgroundCaption, true);
+            UiStyleManager.StyleLabel(lblBackgroundValue, false);
+
+            UiStyleManager.StyleComboBox(cbx_style);
+            cbx_Clipboard.Location =
+                new Point(
+                    302,
+                    27);
+
+            cbx_Clipboard.Size =
+                new Size(
+                    136,
+                    30);
+
+            cbx_Clipboard.Text =
+                "Copy to Clipboard";
+
+            UiStyleManager.StyleToggleCheckBox(
+                cbx_Clipboard,
+                FontStyle.Regular);
+
+            cbx_lineNumber.Location =
+                new Point(
+                    448,
+                    27);
+
+            cbx_lineNumber.Size =
+                new Size(
+                    116,
+                    30);
+
+            cbx_lineNumber.Text =
+                "Line numbers";
+
+            UiStyleManager.StyleToggleCheckBox(
+                cbx_lineNumber,
+                FontStyle.Regular);
+            UiStyleManager.StylePrimaryButton(btnCodeHighLight);
+            UiStyleManager.StyleSecondaryButton(btnBackground);
+
+            btnCodeHighLight.Text = "Insert Code";
+
+            splitMainContent.BackColor =
+                NoteHighlightUiTheme.WindowBackground;
+
+            splitMainContent.Panel1.BackColor =
+                NoteHighlightUiTheme.WindowBackground;
+
+            splitMainContent.Panel2.BackColor =
+                NoteHighlightUiTheme.WindowBackground;
+
+            pnlEditorCard.BorderStyle =
+                BorderStyle.None;
+
+            pnlPreviewCard.BorderStyle =
+                BorderStyle.None;
+
+            pnlEditorCard.Paint -=
+                CardPanel_Paint;
+
+            pnlEditorCard.Paint +=
+                CardPanel_Paint;
+
+            pnlPreviewCard.Paint -=
+                CardPanel_Paint;
+
+            pnlPreviewCard.Paint +=
+                CardPanel_Paint;
+
+            pnlLivePreview.BackColor =
+                NoteHighlightUiTheme.Surface;
+
+            lblPreviewStatus.BackColor =
+                NoteHighlightUiTheme.SurfaceRaised;
+
+            contextMenuStrip1.BackColor =
+                NoteHighlightUiTheme.SurfaceRaised;
+
+            contextMenuStrip1.ForeColor =
+                NoteHighlightUiTheme.TextPrimary;
+
+            contextMenuStrip1.RenderMode =
+                ToolStripRenderMode.System;
+        }
+
+
+        private void CardPanel_Paint(
+            object sender,
+            PaintEventArgs e)
+        {
+            Panel panel =
+                sender as Panel;
+
+            if (panel == null ||
+                panel.ClientRectangle.Width <= 0 ||
+                panel.ClientRectangle.Height <= 0)
+            {
+                return;
+            }
+
+            Rectangle borderRectangle =
+                new Rectangle(
+                    0,
+                    0,
+                    panel.ClientRectangle.Width - 1,
+                    panel.ClientRectangle.Height - 1);
+
+            using (Pen borderPen =
+                new Pen(
+                    NoteHighlightUiTheme.Border))
+            {
+                e.Graphics.DrawRectangle(
+                    borderPen,
+                    borderRectangle);
+            }
+        }
+
+
+        private void UpdateBackgroundDisplay()
+        {
+            Color color =
+                btnBackground.BackColor;
+
+            bool isTransparent =
+                color == Color.Transparent ||
+                color.A == 0;
+
+            lblBackgroundValue.Text =
+                isTransparent
+                    ? "Transparent"
+                    : string.Format(
+                        "#{0:X2}{1:X2}{2:X2}",
+                        color.R,
+                        color.G,
+                        color.B);
+
+            btnBackground.Text =
+                string.Empty;
+
+            btnBackground.FlatAppearance.MouseOverBackColor =
+                color;
+
+            btnBackground.FlatAppearance.MouseDownBackColor =
+                color;
+        }
+
+        private void ApplyBackgroundOverrideToGeneratedHtml(
+            string htmlFilePath)
+        {
+            if (!_hasBackgroundOverride ||
+                string.IsNullOrWhiteSpace(
+                    htmlFilePath) ||
+                !File.Exists(
+                    htmlFilePath))
+            {
+                return;
+            }
+
+            string html =
+                File.ReadAllText(
+                    htmlFilePath);
+
+            string updatedHtml =
+                ApplyBackgroundOverrideToHtml(
+                    html,
+                    BackgroundColor);
+
+            if (!string.Equals(
+                html,
+                updatedHtml,
+                StringComparison.Ordinal))
+            {
+                File.WriteAllText(
+                    htmlFilePath,
+                    updatedHtml);
+            }
+        }
+
+
+        private static string ApplyBackgroundOverrideToHtml(
+            string html,
+            Color backgroundColor)
+        {
+            if (string.IsNullOrEmpty(
+                html))
+            {
+                return html;
+            }
+
+            int preStart =
+                html.IndexOf(
+                    "<pre",
+                    StringComparison.OrdinalIgnoreCase);
+
+            if (preStart < 0)
+            {
+                return html;
+            }
+
+            int preEnd =
+                html.IndexOf(
+                    '>',
+                    preStart);
+
+            if (preEnd < 0)
+            {
+                return html;
+            }
+
+            string preTag =
+                html.Substring(
+                    preStart,
+                    preEnd - preStart + 1);
+
+            string updatedPreTag =
+                ReplaceBackgroundColourInPreTag(
+                    preTag,
+                    backgroundColor);
+
+            if (string.Equals(
+                preTag,
+                updatedPreTag,
+                StringComparison.Ordinal))
+            {
+                return html;
+            }
+
+            return
+                html.Substring(
+                    0,
+                    preStart) +
+                updatedPreTag +
+                html.Substring(
+                    preEnd + 1);
+        }
+
+
+        private static string ReplaceBackgroundColourInPreTag(
+            string preTag,
+            Color backgroundColor)
+        {
+            const string propertyName =
+                "background-color";
+
+            int propertyIndex =
+                preTag.IndexOf(
+                    propertyName,
+                    StringComparison.OrdinalIgnoreCase);
+
+            bool transparent =
+                backgroundColor == Color.Transparent ||
+                backgroundColor.A == 0;
+
+            string replacement =
+                transparent
+                    ? string.Empty
+                    : string.Format(
+                        "background-color:#{0:X2}{1:X2}{2:X2};",
+                        backgroundColor.R,
+                        backgroundColor.G,
+                        backgroundColor.B);
+
+            if (propertyIndex >= 0)
+            {
+                int semicolonIndex =
+                    preTag.IndexOf(
+                        ';',
+                        propertyIndex);
+
+                if (semicolonIndex < 0)
+                {
+                    semicolonIndex =
+                        preTag.IndexOf(
+                            '"',
+                            propertyIndex);
+
+                    if (semicolonIndex < 0)
+                    {
+                        return preTag;
+                    }
+
+                    return
+                        preTag.Remove(
+                            propertyIndex,
+                            semicolonIndex -
+                            propertyIndex)
+                        .Insert(
+                            propertyIndex,
+                            replacement);
+                }
+
+                return
+                    preTag.Remove(
+                        propertyIndex,
+                        semicolonIndex -
+                        propertyIndex + 1)
+                    .Insert(
+                        propertyIndex,
+                        replacement);
+            }
+
+            if (transparent)
+            {
+                return preTag;
+            }
+
+            int styleIndex =
+                preTag.IndexOf(
+                    "style=\"",
+                    StringComparison.OrdinalIgnoreCase);
+
+            if (styleIndex >= 0)
+            {
+                int styleContentStart =
+                    styleIndex +
+                    "style=\"".Length;
+
+                return
+                    preTag.Insert(
+                        styleContentStart,
+                        replacement);
+            }
+
+            return
+                preTag.Insert(
+                    preTag.Length - 1,
+                    " style=\"" +
+                    replacement +
+                    "\"");
+        }
+
 
         #region -- Live Preview --
 
@@ -394,6 +790,9 @@ namespace NoteHighlightAddin
 
                 HighlightWorkflowResult result =
                     _workflowService.Execute(request);
+
+                ApplyBackgroundOverrideToGeneratedHtml(
+                    result.OutputFileName);
 
                 if (string.IsNullOrWhiteSpace(result.OutputFileName) ||
                     !File.Exists(result.OutputFileName))
