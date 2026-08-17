@@ -23,7 +23,12 @@ namespace NoteHighlightAddin
 
             HtmlFragment.CopyToClipboard(html);
 
-            File.Delete(outputFileName);
+            // Do not delete outputFileName here.
+            //
+            // MainForm's final workflow and AddIn share this generated HTML
+            // file. AddIn reads it after MainForm closes in order to insert
+            // the highlighted content into OneNote. Deleting it here made
+            // "Copy to Clipboard" behave like "Copy instead of Insert".
         }
 
         private string BuildClipboardHtml(

@@ -1,7 +1,9 @@
 ﻿using GenerateHighlightContent;
+using Infrastructure.Core;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.WinForms;
 using NoteHighlightAddin.Highlighting.Preview.Services;
+using NoteHighlightAddin.Highlighting.Themes;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -41,6 +43,7 @@ namespace NoteHighlightAddin
         private readonly BackgroundColorSelector _backgroundColorSelector;
         private readonly MainFormDisplayCoordinator _displayCoordinator;
         private readonly ThemePreferenceProvider _themePreferenceProvider;
+        private readonly IHighlightThemeReader _themeReader;
 
         // Live preview state.
         private readonly Timer _previewRefreshTimer;
@@ -50,6 +53,9 @@ namespace NoteHighlightAddin
         private bool _isGeneratingPreview;
         private bool _previewEventsConnected;
         private bool _hasBackgroundOverride;
+        private readonly KeyboardFocusVisualManager _keyboardFocusVisualManager;
+        private readonly KeyboardHelpManager _keyboardHelpManager;
+        private Label _keyboardHelpLabel;
 
         public HighLightParameter Parameters { get; private set; }
 
@@ -72,6 +78,7 @@ namespace NoteHighlightAddin
             _settingsProvider = new MainFormSettingsProvider();
             _settingsBinder = new MainFormSettingsBinder();
             _themePreferenceProvider = new ThemePreferenceProvider();
+            _themeReader = new HighlightThemeReader();
             _backgroundColorSelector = new BackgroundColorSelector();
             var themeBinder = new ThemeComboBoxBinder(new ThemeProvider());
             var editorConfigurator = new CodeEditorConfigurator(new CodeEditorLanguageMapper());
@@ -95,6 +102,8 @@ namespace NoteHighlightAddin
 
             InitializeComponent();
             ApplyModernAppearance();
+            CreateKeyboardHelpLegend();
+            CreateKeyboardHelpButton();
 
             txtCode.Text = selectedText;
             FormClosed += SettingsForm_FormClosed;
@@ -105,6 +114,17 @@ namespace NoteHighlightAddin
                 ShowInTaskbar = false;
                 splitMainContent.Panel2Collapsed = true;
             }
+
+            _keyboardFocusVisualManager =
+                new KeyboardFocusVisualManager(
+                    this);
+
+            _keyboardHelpManager =
+                new KeyboardHelpManager(
+                    this,
+                    _keyboardHelpLabel,
+                    ResolveKeyboardHelp,
+                    GetDefaultKeyboardHelp());
         }
 
         #endregion
@@ -126,6 +146,7 @@ namespace NoteHighlightAddin
                     cbx_Clipboard,
                     cbx_lineNumber);
 
+                ResetBackgroundToSelectedTheme();
                 UpdateBackgroundDisplay();
 
                 if (!_quickStyle)
@@ -187,6 +208,9 @@ namespace NoteHighlightAddin
                 HighlightWorkflowResult result = _workflowService.Execute(request);
 
                 ApplyBackgroundOverrideToGeneratedHtml(
+                    result.OutputFileName);
+
+                EnsureFinalOutputForAddIn(
                     result.OutputFileName);
 
                 Parameters = result.Parameters;
@@ -271,6 +295,336 @@ namespace NoteHighlightAddin
 
             UpdateBackgroundDisplay();
             RequestPreviewRefresh();
+        }
+
+
+        private void CreateKeyboardHelpLegend()
+        {
+            _keyboardHelpLabel =
+                new Label
+                {
+                    Name =
+                        "lblKeyboardHelp",
+
+                    AutoEllipsis =
+                        true,
+
+                    Location =
+                        new Point(
+                            180,
+                            24),
+
+                    Size =
+                        new Size(
+                            Math.Max(
+                                220,
+                                panel2.ClientSize.Width -
+                                370),
+                            24),
+
+                    Anchor =
+                        AnchorStyles.Left |
+                        AnchorStyles.Right |
+                        AnchorStyles.Top,
+
+                    TextAlign =
+                        ContentAlignment.MiddleLeft,
+
+                    TabStop =
+                        false,
+
+                    Text =
+                        GetDefaultKeyboardHelp()
+                };
+
+            UiStyleManager.StyleLabel(
+                _keyboardHelpLabel,
+                true);
+
+            _keyboardHelpLabel.Font =
+                NoteHighlightUiTheme.CreateSmallFont();
+
+            panel2.Controls.Add(
+                _keyboardHelpLabel);
+
+            _keyboardHelpLabel.BringToFront();
+        }
+
+
+        private static string GetDefaultKeyboardHelp()
+        {
+            return
+                "Keyboard: Tab = next  •  Shift+Tab = previous  •  Space = activate";
+        }
+
+
+        private string ResolveKeyboardHelp(
+            Control control)
+        {
+            if (txtCode != null &&
+                txtCode.ContainsFocus)
+            {
+                return
+                    "Code Editor: Tab = indent  •  Shift+Tab = unindent  •  F6 = leave editor";
+            }
+
+            if (control == cbx_style)
+            {
+                return
+                    "Theme: ↑/↓ = choose theme  •  Tab = next control";
+            }
+
+            if (control == cbx_Clipboard ||
+                control == cbx_lineNumber)
+            {
+                return
+                    "Toggle: Space = change  •  Tab = next  •  Shift+Tab = previous";
+            }
+
+            if (control == btnBackground)
+            {
+                return
+                    "Background: Space/Enter = open options  •  Tab = next";
+            }
+
+            if (control == btnCodeHighLight)
+            {
+                return
+                    "Insert Code: Space/Enter = insert into OneNote  •  Shift+Tab = previous";
+            }
+
+            if (_previewWebView != null &&
+                control == _previewWebView)
+            {
+                return
+                    "Preview: Tab = next control  •  Shift+Tab = previous  •  F6 = next";
+            }
+
+            return
+                GetDefaultKeyboardHelp();
+        }
+
+
+        protected override bool ProcessCmdKey(
+            ref Message msg,
+            Keys keyData)
+        {
+            bool shift =
+                (keyData & Keys.Shift) ==
+                Keys.Shift;
+
+            Keys keyCode =
+                keyData &
+                Keys.KeyCode;
+
+            if (keyCode == Keys.F1)
+            {
+                KeyboardShortcutsForm.ShowHelp(
+                    this);
+
+                return true;
+            }
+
+            if (keyCode == Keys.F6)
+            {
+                MoveMainKeyboardFocus(
+                    !shift);
+
+                return true;
+            }
+
+            return base.ProcessCmdKey(
+                ref msg,
+                keyData);
+        }
+
+
+        protected override bool ProcessDialogKey(
+            Keys keyData)
+        {
+            bool shift =
+                (keyData & Keys.Shift) ==
+                Keys.Shift;
+
+            Keys keyCode =
+                keyData &
+                Keys.KeyCode;
+
+            if (keyCode == Keys.Tab)
+            {
+                // The editor owns Tab/Shift+Tab for indentation.
+                // F6/Shift+F6 is the explicit way to leave it.
+                if (txtCode != null &&
+                    txtCode.ContainsFocus)
+                {
+                    return base.ProcessDialogKey(
+                        keyData);
+                }
+
+                MoveMainKeyboardFocus(
+                    !shift);
+
+                return true;
+            }
+
+            return base.ProcessDialogKey(
+                keyData);
+        }
+
+
+        private void MoveMainKeyboardFocus(
+            bool forward)
+        {
+            Control[] navigationOrder =
+            {
+                cbx_style,
+                cbx_Clipboard,
+                cbx_lineNumber,
+                txtCode,
+                _previewWebView,
+                btnCodeHighLight,
+                btnBackground
+            };
+
+            FocusControlInSequence(
+                navigationOrder,
+                forward);
+        }
+
+
+        private static bool CanUseKeyboardFocus(
+            Control control)
+        {
+            return
+                control != null &&
+                !control.IsDisposed &&
+                control.Visible &&
+                control.Enabled &&
+                control.CanSelect;
+        }
+
+
+        private static bool IsCurrentKeyboardFocus(
+            Control control)
+        {
+            return
+                control != null &&
+                !control.IsDisposed &&
+                control.ContainsFocus;
+        }
+
+
+        private void FocusControlInSequence(
+            Control[] navigationOrder,
+            bool forward)
+        {
+            if (navigationOrder == null ||
+                navigationOrder.Length == 0)
+            {
+                return;
+            }
+
+            int currentIndex =
+                -1;
+
+            for (int index = 0;
+                index < navigationOrder.Length;
+                index++)
+            {
+                if (IsCurrentKeyboardFocus(
+                    navigationOrder[index]))
+                {
+                    currentIndex =
+                        index;
+
+                    break;
+                }
+            }
+
+            int step =
+                forward
+                    ? 1
+                    : -1;
+
+            int candidateIndex =
+                currentIndex;
+
+            for (int attempts = 0;
+                attempts < navigationOrder.Length;
+                attempts++)
+            {
+                if (candidateIndex < 0)
+                {
+                    candidateIndex =
+                        forward
+                            ? 0
+                            : navigationOrder.Length - 1;
+                }
+                else
+                {
+                    candidateIndex =
+                        (candidateIndex +
+                            step +
+                            navigationOrder.Length) %
+                        navigationOrder.Length;
+                }
+
+                Control candidate =
+                    navigationOrder[candidateIndex];
+
+                if (!CanUseKeyboardFocus(
+                    candidate))
+                {
+                    continue;
+                }
+
+                candidate.Focus();
+
+                return;
+            }
+        }
+
+
+        private void CreateKeyboardHelpButton()
+        {
+            Button keyboardHelpButton =
+                new Button
+                {
+                    Text =
+                        "?",
+
+                    Size =
+                        new Size(
+                            34,
+                            30),
+
+                    Location =
+                        new Point(
+                            ClientSize.Width - 46,
+                            10),
+
+                    Anchor =
+                        AnchorStyles.Top |
+                        AnchorStyles.Right,
+
+                    TabStop =
+                        false
+                };
+
+            UiStyleManager.StyleSecondaryButton(
+                keyboardHelpButton);
+
+            keyboardHelpButton.Click +=
+                delegate
+                {
+                    KeyboardShortcutsForm.ShowHelp(
+                        this);
+                };
+
+            Controls.Add(
+                keyboardHelpButton);
+
+            keyboardHelpButton.BringToFront();
         }
 
 
@@ -447,6 +801,47 @@ namespace NoteHighlightAddin
             btnBackground.FlatAppearance.MouseDownBackColor =
                 color;
         }
+
+        private void EnsureFinalOutputForAddIn(
+            string generatedFilePath)
+        {
+            if (string.IsNullOrWhiteSpace(
+                generatedFilePath) ||
+                !File.Exists(
+                    generatedFilePath))
+            {
+                throw new FileNotFoundException(
+                    "The final highlighted HTML file was not generated.",
+                    generatedFilePath);
+            }
+
+            string expectedFilePath =
+                Path.Combine(
+                    Path.GetTempPath(),
+                    _fileName + ".html");
+
+            string generatedFullPath =
+                Path.GetFullPath(
+                    generatedFilePath);
+
+            string expectedFullPath =
+                Path.GetFullPath(
+                    expectedFilePath);
+
+            if (string.Equals(
+                generatedFullPath,
+                expectedFullPath,
+                StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            File.Copy(
+                generatedFullPath,
+                expectedFullPath,
+                true);
+        }
+
 
         private void ApplyBackgroundOverrideToGeneratedHtml(
             string htmlFilePath)
@@ -634,6 +1029,147 @@ namespace NoteHighlightAddin
         }
 
 
+        private void ThemeSelectionChanged(
+            object sender,
+            EventArgs e)
+        {
+            ResetBackgroundToSelectedTheme();
+            UpdateBackgroundDisplay();
+            RequestPreviewRefresh();
+        }
+
+
+        private void ResetBackgroundToSelectedTheme()
+        {
+            _hasBackgroundOverride =
+                false;
+
+            Color themeBackground;
+
+            if (TryGetSelectedThemeBackground(
+                out themeBackground))
+            {
+                btnBackground.BackColor =
+                    themeBackground;
+            }
+        }
+
+
+        private bool TryGetSelectedThemeBackground(
+            out Color backgroundColor)
+        {
+            backgroundColor =
+                btnBackground.BackColor;
+
+            if (string.IsNullOrWhiteSpace(
+                CodeStyle))
+            {
+                return false;
+            }
+
+            try
+            {
+                string themePath =
+                    Path.Combine(
+                        PathManager.ThemesFolder,
+                        CodeStyle + ".theme");
+
+                if (!File.Exists(
+                    themePath))
+                {
+                    return false;
+                }
+
+                HighlightTheme theme =
+                    _themeReader.Read(
+                        themePath);
+
+                if (theme == null ||
+                    theme.Styles == null)
+                {
+                    return false;
+                }
+
+                ThemeStyle canvasStyle;
+
+                if (!theme.Styles.TryGetValue(
+                    "Canvas",
+                    out canvasStyle) ||
+                    canvasStyle == null ||
+                    string.IsNullOrWhiteSpace(
+                        canvasStyle.Colour))
+                {
+                    return false;
+                }
+
+                return TryParseThemeBackgroundColour(
+                    canvasStyle.Colour,
+                    out backgroundColor);
+            }
+            catch
+            {
+                // A malformed theme should not prevent MainForm from opening.
+                // highlight.exe will still use its normal theme handling.
+                return false;
+            }
+        }
+
+
+        private static bool TryParseThemeBackgroundColour(
+            string value,
+            out Color color)
+        {
+            color =
+                Color.Transparent;
+
+            if (string.IsNullOrWhiteSpace(
+                value))
+            {
+                return false;
+            }
+
+            string normalized =
+                value.Trim();
+
+            if (string.Equals(
+                normalized,
+                "none",
+                StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(
+                    normalized,
+                    "transparent",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                color =
+                    Color.Transparent;
+
+                return true;
+            }
+
+            if (!normalized.StartsWith(
+                "#",
+                StringComparison.Ordinal))
+            {
+                normalized =
+                    "#" +
+                    normalized;
+            }
+
+            try
+            {
+                color =
+                    ColorTranslator.FromHtml(
+                        normalized);
+
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+
         #region -- Live Preview --
 
         private void ConnectPreviewEvents()
@@ -645,6 +1181,7 @@ namespace NoteHighlightAddin
 
             txtCode.TextChanged += PreviewInputChanged;
             cbx_style.SelectedIndexChanged += PreviewInputChanged;
+            cbx_style.SelectedIndexChanged += ThemeSelectionChanged;
             cbx_lineNumber.CheckedChanged += PreviewInputChanged;
 
             _previewEventsConnected = true;
@@ -659,6 +1196,7 @@ namespace NoteHighlightAddin
 
             txtCode.TextChanged -= PreviewInputChanged;
             cbx_style.SelectedIndexChanged -= PreviewInputChanged;
+            cbx_style.SelectedIndexChanged -= ThemeSelectionChanged;
             cbx_lineNumber.CheckedChanged -= PreviewInputChanged;
 
             _previewEventsConnected = false;

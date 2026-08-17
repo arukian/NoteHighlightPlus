@@ -28,6 +28,11 @@ namespace NoteHighlightAddin
         private Button _btnLanguageGroupsTab;
         private Button _btnThemeEditorTab;
         private readonly LanguageEditorViewModel _languageEditor;
+        private readonly KeyboardFocusVisualManager _keyboardFocusVisualManager;
+        private readonly KeyboardHelpManager _keyboardHelpManager;
+        private Label _keyboardHelpLabel;
+        private int _settingsKeyboardNavigationIndex = -1;
+        private Control[] _settingsKeyboardNavigationRoute;
         private Button _btnAddKeywordGroup;
         private Button _btnRemoveKeywordGroup;
         private Button _btnMoveKeywordGroupUp;
@@ -338,6 +343,187 @@ namespace NoteHighlightAddin
             ClearThemeStylePreview();
 
             ApplyModernUi();
+            CreateKeyboardHelpLegend();
+            CreateKeyboardHelpButton();
+
+            _keyboardFocusVisualManager =
+                new KeyboardFocusVisualManager(
+                    this);
+
+            _keyboardHelpManager =
+                new KeyboardHelpManager(
+                    this,
+                    _keyboardHelpLabel,
+                    ResolveKeyboardHelp,
+                    GetDefaultKeyboardHelp());
+        }
+
+
+        private void CreateKeyboardHelpLegend()
+        {
+            // Reserve a slim row at the bottom of Preview for keyboard help.
+            pnlPreview.Height =
+                Math.Max(
+                    100,
+                    pnlPreview.Height - 30);
+
+            _keyboardHelpLabel =
+                new Label
+                {
+                    Name =
+                        "lblKeyboardHelp",
+
+                    AutoEllipsis =
+                        true,
+
+                    Location =
+                        new Point(
+                            14,
+                            grpPreview.ClientSize.Height -
+                            32),
+
+                    Size =
+                        new Size(
+                            Math.Max(
+                                120,
+                                grpPreview.ClientSize.Width -
+                                28),
+                            22),
+
+                    Anchor =
+                        AnchorStyles.Left |
+                        AnchorStyles.Right |
+                        AnchorStyles.Bottom,
+
+                    TextAlign =
+                        ContentAlignment.MiddleLeft,
+
+                    TabStop =
+                        false,
+
+                    Text =
+                        GetDefaultKeyboardHelp()
+                };
+
+            UiStyleManager.StyleLabel(
+                _keyboardHelpLabel,
+                true);
+
+            _keyboardHelpLabel.Font =
+                NoteHighlightUiTheme.CreateSmallFont();
+
+            grpPreview.Controls.Add(
+                _keyboardHelpLabel);
+
+            _keyboardHelpLabel.BringToFront();
+        }
+
+
+        private static string GetDefaultKeyboardHelp()
+        {
+            return
+                "Keyboard: Tab = next control  •  Shift+Tab = previous  •  Space = activate";
+        }
+
+
+        private string ResolveKeyboardHelp(
+            Control control)
+        {
+            if (control == _btnLanguageGroupsTab ||
+                control == _btnThemeEditorTab)
+            {
+                return
+                    "Tabs: ←/→ = switch tab  •  Space/Enter = open  •  Tab = continue";
+            }
+
+            if (_previewWebView != null &&
+                control == _previewWebView)
+            {
+                return
+                    "Preview: Tab = continue to the next control";
+            }
+
+            if (control is ListBox)
+            {
+                return
+                    "List: ↑/↓ = move selection  •  Tab = next control";
+            }
+
+            if (control is ComboBox)
+            {
+                return
+                    "Dropdown: ↑/↓ = choose item  •  Tab = next control";
+            }
+
+            if (control is NumericUpDown)
+            {
+                return
+                    "Number: type a value or use ↑/↓  •  Tab = next";
+            }
+
+            if (control is TextBoxBase)
+            {
+                return
+                    "Field: type/edit value  •  Tab = next  •  Shift+Tab = previous";
+            }
+
+            if (control is CheckBox)
+            {
+                return
+                    "Toggle: Space = change  •  Tab = next  •  Shift+Tab = previous";
+            }
+
+            if (control is Button)
+            {
+                return
+                    "Button: Space/Enter = activate  •  Tab = next  •  Shift+Tab = previous";
+            }
+
+            return
+                GetDefaultKeyboardHelp();
+        }
+
+
+        private void CreateKeyboardHelpButton()
+        {
+            Button keyboardHelpButton =
+                new Button
+                {
+                    Text =
+                        "?",
+
+                    Size =
+                        new Size(
+                            34,
+                            30),
+
+                    Location =
+                        new Point(
+                            ClientSize.Width - 46,
+                            10),
+
+                    Anchor =
+                        AnchorStyles.Top |
+                        AnchorStyles.Right,
+
+                    TabStop =
+                        false
+                };
+
+            UiStyleManager.StyleSecondaryButton(
+                keyboardHelpButton);
+
+            keyboardHelpButton.Click +=
+                delegate
+                {
+                    KeyboardShortcutsForm.ShowHelp(
+                        this);
+                };
+
+            Controls.Add(
+                keyboardHelpButton);
+
+            keyboardHelpButton.BringToFront();
         }
 
 
@@ -1464,7 +1650,7 @@ namespace NoteHighlightAddin
                             32),
 
                     TabStop =
-                        false
+                        true
                 };
 
             _btnThemeEditorTab =
@@ -1487,7 +1673,7 @@ namespace NoteHighlightAddin
                             32),
 
                     TabStop =
-                        false
+                        true
                 };
 
             Controls.Add(
@@ -2047,6 +2233,390 @@ namespace NoteHighlightAddin
             _isFormClosingConfirmed =
                 true;
         }
+
+        protected override bool ProcessCmdKey(
+            ref Message msg,
+            Keys keyData)
+        {
+            if ((keyData & Keys.KeyCode) ==
+                Keys.F1)
+            {
+                KeyboardShortcutsForm.ShowHelp(
+                    this);
+
+                return true;
+            }
+
+            return base.ProcessCmdKey(
+                ref msg,
+                keyData);
+        }
+
+
+        protected override bool ProcessDialogKey(
+            Keys keyData)
+        {
+            bool shift =
+                (keyData & Keys.Shift) ==
+                Keys.Shift;
+
+            Keys keyCode =
+                keyData &
+                Keys.KeyCode;
+
+            if (IsCustomTabFocused() &&
+                (keyCode == Keys.Left ||
+                 keyCode == Keys.Right))
+            {
+                SwitchFocusedSettingsTab();
+
+                return true;
+            }
+
+            if (keyCode == Keys.Tab)
+            {
+                MoveSettingsKeyboardFocus(
+                    !shift);
+
+                return true;
+            }
+
+            return base.ProcessDialogKey(
+                keyData);
+        }
+
+
+        private bool IsCustomTabFocused()
+        {
+            return
+                (_btnLanguageGroupsTab != null &&
+                 _btnLanguageGroupsTab.ContainsFocus) ||
+                (_btnThemeEditorTab != null &&
+                 _btnThemeEditorTab.ContainsFocus);
+        }
+
+
+        private void SwitchFocusedSettingsTab()
+        {
+            if (_btnLanguageGroupsTab == null ||
+                _btnThemeEditorTab == null)
+            {
+                return;
+            }
+
+            // There are only two custom tabs, so either arrow moves
+            // to the other tab. This keeps the behaviour predictable in
+            // both left-to-right and right-to-left navigation.
+            bool openThemeEditor =
+                _btnLanguageGroupsTab.ContainsFocus;
+
+            if (openThemeEditor)
+            {
+                tabSettings.SelectedTab =
+                    tabThemeEditor;
+
+                _btnThemeEditorTab.Focus();
+            }
+            else
+            {
+                tabSettings.SelectedTab =
+                    tabLanguageGroups;
+
+                _btnLanguageGroupsTab.Focus();
+            }
+
+            RefreshCustomSettingsTabs();
+            ResetSettingsKeyboardNavigation();
+        }
+
+
+        private void MoveSettingsKeyboardFocus(
+            bool forward)
+        {
+            Control[] route =
+                GetSettingsKeyboardNavigationOrder();
+
+            EnsureSettingsKeyboardRoute(
+                route);
+
+            MoveAlongSettingsKeyboardRoute(
+                forward);
+        }
+
+
+        private void EnsureSettingsKeyboardRoute(
+            Control[] route)
+        {
+            if (route == null ||
+                route.Length == 0)
+            {
+                _settingsKeyboardNavigationRoute =
+                    null;
+
+                _settingsKeyboardNavigationIndex =
+                    -1;
+
+                return;
+            }
+
+            bool sameRoute =
+                _settingsKeyboardNavigationRoute != null &&
+                _settingsKeyboardNavigationRoute.Length ==
+                    route.Length;
+
+            if (sameRoute)
+            {
+                for (int index = 0;
+                    index < route.Length;
+                    index++)
+                {
+                    if (!ReferenceEquals(
+                        _settingsKeyboardNavigationRoute[index],
+                        route[index]))
+                    {
+                        sameRoute =
+                            false;
+
+                        break;
+                    }
+                }
+            }
+
+            if (!sameRoute)
+            {
+                _settingsKeyboardNavigationRoute =
+                    route;
+
+                _settingsKeyboardNavigationIndex =
+                    FindCurrentSettingsRouteIndex(
+                        route);
+            }
+            else
+            {
+                int detectedIndex =
+                    FindCurrentSettingsRouteIndex(
+                        route);
+
+                if (detectedIndex >= 0)
+                {
+                    _settingsKeyboardNavigationIndex =
+                        detectedIndex;
+                }
+            }
+        }
+
+
+        private int FindCurrentSettingsRouteIndex(
+            Control[] route)
+        {
+            if (route == null)
+            {
+                return -1;
+            }
+
+            for (int index = 0;
+                index < route.Length;
+                index++)
+            {
+                Control candidate =
+                    route[index];
+
+                if (candidate != null &&
+                    !candidate.IsDisposed &&
+                    candidate.ContainsFocus)
+                {
+                    return index;
+                }
+            }
+
+            return -1;
+        }
+
+
+        private void MoveAlongSettingsKeyboardRoute(
+            bool forward)
+        {
+            Control[] route =
+                _settingsKeyboardNavigationRoute;
+
+            if (route == null ||
+                route.Length == 0)
+            {
+                return;
+            }
+
+            int step =
+                forward
+                    ? 1
+                    : -1;
+
+            int index =
+                _settingsKeyboardNavigationIndex;
+
+            for (int attempts = 0;
+                attempts < route.Length;
+                attempts++)
+            {
+                if (index < 0)
+                {
+                    index =
+                        forward
+                            ? 0
+                            : route.Length - 1;
+                }
+                else
+                {
+                    index =
+                        (index +
+                            step +
+                            route.Length) %
+                        route.Length;
+                }
+
+                Control candidate =
+                    route[index];
+
+                if (!CanUseSettingsKeyboardFocus(
+                    candidate))
+                {
+                    continue;
+                }
+
+                _settingsKeyboardNavigationIndex =
+                    index;
+
+                candidate.Select();
+                candidate.Focus();
+
+                return;
+            }
+        }
+
+
+        private void ResetSettingsKeyboardNavigation()
+        {
+            _settingsKeyboardNavigationRoute =
+                null;
+
+            _settingsKeyboardNavigationIndex =
+                -1;
+        }
+
+
+        private Control[] GetSettingsKeyboardNavigationOrder()
+        {
+            if (tabSettings.SelectedTab ==
+                tabThemeEditor)
+            {
+                return
+                    GetThemeEditorKeyboardNavigationOrder();
+            }
+
+            bool hasSelectedLanguage =
+                lbxLanguages != null &&
+                lbxLanguages.SelectedIndex >= 0 &&
+                _languageEditor.HasConfiguration;
+
+            if (hasSelectedLanguage)
+            {
+                return
+                    GetLanguageKeyboardNavigationOrder();
+            }
+
+            return
+                GetEmptyLanguageKeyboardNavigationOrder();
+        }
+
+
+        private Control[] GetEmptyLanguageKeyboardNavigationOrder()
+        {
+            return new Control[]
+            {
+                btnFont,
+                cbShowTableBorder,
+                _previewWebView,
+                _btnLanguageGroupsTab,
+                lbxKeywordGroups,
+                lbxGroupWords,
+                _btnAddKeywordGroup,
+                txtGroupName,
+                txtGroupDescription,
+                lbxLanguages,
+                btnRemoveLanguage,
+                cmbAvailableLanguages,
+                btnAddLanguage,
+                btnExportConfiguration,
+                btnImportConfiguration
+            };
+        }
+
+
+        private Control[] GetLanguageKeyboardNavigationOrder()
+        {
+            return new Control[]
+            {
+                btnFont,
+                cbShowTableBorder,
+                _previewWebView,
+                _btnLanguageGroupsTab,
+                lbxKeywordGroups,
+                lbxGroupWords,
+                txtNewGroupWord,
+                btnAddGroupWord,
+                btnRemoveGroupWord,
+                _btnEditGroupRegex,
+                _btnAddKeywordGroup,
+                _btnRemoveKeywordGroup,
+                _btnMoveKeywordGroupUp,
+                _btnMoveKeywordGroupDown,
+                txtGroupName,
+                txtGroupDescription,
+                nudGroupId,
+                lbxLanguages,
+                btnRemoveLanguage,
+                cmbAvailableLanguages,
+                btnAddLanguage,
+                btnExportConfiguration,
+                btnImportConfiguration
+            };
+        }
+
+
+        private Control[] GetThemeEditorKeyboardNavigationOrder()
+        {
+            return new Control[]
+            {
+                btnFont,
+                cbShowTableBorder,
+                _previewWebView,
+                _btnThemeEditorTab,
+                cmbThemes,
+                btnNewTheme,
+                btnDuplicateTheme,
+                btnRenameTheme,
+                btnDeleteTheme,
+                btnResetTheme,
+                btnChangeThemeColour,
+                chkThemeBold,
+                chkThemeItalic,
+                cmbThemeStyleTarget,
+                btnExportConfiguration,
+                btnImportConfiguration
+            };
+        }
+
+
+        private static bool CanUseSettingsKeyboardFocus(
+            Control control)
+        {
+            return
+                control != null &&
+                !control.IsDisposed &&
+                control.Visible &&
+                control.Enabled &&
+                control.CanSelect;
+        }
+
 
         private void SettingsForm_KeyDown(
     object sender,

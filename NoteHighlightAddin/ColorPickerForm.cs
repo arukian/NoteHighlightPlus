@@ -31,6 +31,9 @@ namespace NoteHighlightAddin
         private FlowLayoutPanel _recentColors;
         private Button _btnApply;
         private Button _btnCancel;
+        private readonly KeyboardFocusVisualManager _keyboardFocusVisualManager;
+        private readonly KeyboardHelpManager _keyboardHelpManager;
+        private Label _keyboardHelpLabel;
 
         private double _hue;
         private double _saturation;
@@ -99,11 +102,297 @@ namespace NoteHighlightAddin
             InitializePicker();
             ApplyTheme();
             SyncControlsFromColor();
+            CreateKeyboardHelpLegend();
+            CreateKeyboardHelpButton();
+
+            _keyboardFocusVisualManager =
+                new KeyboardFocusVisualManager(
+                    this);
+
+            _keyboardHelpManager =
+                new KeyboardHelpManager(
+                    this,
+                    _keyboardHelpLabel,
+                    ResolveKeyboardHelp,
+                    GetDefaultKeyboardHelp());
         }
 
 
         public Color SelectedColor =>
             _selectedColor;
+
+
+        protected override bool ProcessCmdKey(
+            ref Message msg,
+            Keys keyData)
+        {
+            bool shift =
+                (keyData & Keys.Shift) ==
+                Keys.Shift;
+
+            Keys keyCode =
+                keyData &
+                Keys.KeyCode;
+
+            if (keyCode == Keys.F1)
+            {
+                KeyboardShortcutsForm.ShowHelp(
+                    this);
+
+                return true;
+            }
+
+            if (keyCode == Keys.Escape)
+            {
+                DialogResult =
+                    DialogResult.Cancel;
+
+                Close();
+
+                return true;
+            }
+
+            Button focusedSwatch =
+                GetFocusedSwatch();
+
+            if (focusedSwatch != null)
+            {
+                if (keyCode == Keys.Left ||
+                    keyCode == Keys.Right ||
+                    keyCode == Keys.Up ||
+                    keyCode == Keys.Down)
+                {
+                    MoveFocusedSwatch(
+                        focusedSwatch,
+                        keyCode);
+
+                    return true;
+                }
+
+                if (keyCode == Keys.Enter ||
+                    keyCode == Keys.Space)
+                {
+                    focusedSwatch.PerformClick();
+
+                    return true;
+                }
+            }
+
+            if (_saturationValuePanel != null &&
+                _saturationValuePanel.ContainsFocus &&
+                (keyCode == Keys.Left ||
+                 keyCode == Keys.Right ||
+                 keyCode == Keys.Up ||
+                 keyCode == Keys.Down))
+            {
+                AdjustSaturationValueFromKeyboard(
+                    keyCode,
+                    shift);
+
+                return true;
+            }
+
+            if (_huePanel != null &&
+                _huePanel.ContainsFocus &&
+                (keyCode == Keys.Up ||
+                 keyCode == Keys.Down))
+            {
+                AdjustHueFromKeyboard(
+                    keyCode,
+                    shift);
+
+                return true;
+            }
+
+            return base.ProcessCmdKey(
+                ref msg,
+                keyData);
+        }
+
+
+        protected override bool ProcessDialogKey(
+            Keys keyData)
+        {
+            bool shift =
+                (keyData & Keys.Shift) ==
+                Keys.Shift;
+
+            Keys keyCode =
+                keyData &
+                Keys.KeyCode;
+
+            if (keyCode == Keys.Tab)
+            {
+                MovePickerKeyboardFocus(
+                    !shift);
+
+                return true;
+            }
+
+            return base.ProcessDialogKey(
+                keyData);
+        }
+
+
+        private void CreateKeyboardHelpButton()
+        {
+            Button keyboardHelpButton =
+                new Button
+                {
+                    Text =
+                        "?",
+
+                    Size =
+                        new Size(
+                            34,
+                            30),
+
+                    Location =
+                        new Point(
+                            ClientSize.Width - 46,
+                            10),
+
+                    Anchor =
+                        AnchorStyles.Top |
+                        AnchorStyles.Right,
+
+                    TabStop =
+                        false
+                };
+
+            UiStyleManager.StyleSecondaryButton(
+                keyboardHelpButton);
+
+            keyboardHelpButton.Click +=
+                delegate
+                {
+                    KeyboardShortcutsForm.ShowHelp(
+                        this);
+                };
+
+            Controls.Add(
+                keyboardHelpButton);
+
+            keyboardHelpButton.BringToFront();
+        }
+
+
+        private void CreateKeyboardHelpLegend()
+        {
+            _keyboardHelpLabel =
+                new Label
+                {
+                    Name =
+                        "lblKeyboardHelp",
+
+                    AutoEllipsis =
+                        true,
+
+                    Location =
+                        new Point(
+                            24,
+                            640),
+
+                    Size =
+                        new Size(
+                            520,
+                            24),
+
+                    Anchor =
+                        AnchorStyles.Left |
+                        AnchorStyles.Bottom,
+
+                    TextAlign =
+                        ContentAlignment.MiddleLeft,
+
+                    TabStop =
+                        false,
+
+                    Text =
+                        GetDefaultKeyboardHelp()
+                };
+
+            UiStyleManager.StyleLabel(
+                _keyboardHelpLabel,
+                true);
+
+            _keyboardHelpLabel.Font =
+                NoteHighlightUiTheme.CreateSmallFont();
+
+            Controls.Add(
+                _keyboardHelpLabel);
+
+            _keyboardHelpLabel.BringToFront();
+        }
+
+
+        private static string GetDefaultKeyboardHelp()
+        {
+            return
+                "Keyboard: Tab = next  •  Shift+Tab = previous  •  Enter = Apply  •  Esc = Cancel";
+        }
+
+
+        private string ResolveKeyboardHelp(
+            Control control)
+        {
+            if (IsSwatchInPalette(
+                control,
+                _quickColors))
+            {
+                return
+                    "Quick colours: ←/→/↑/↓ = navigate  •  Space/Enter = select  •  Tab = next section";
+            }
+
+            if (IsSwatchInPalette(
+                control,
+                _recentColors))
+            {
+                return
+                    "Recent: ←/→/↑/↓ = navigate  •  Space/Enter = select  •  Tab = next section";
+            }
+
+            if (control == _saturationValuePanel)
+            {
+                return
+                    "Colour field: ←/→ = saturation  •  ↑/↓ = brightness  •  Shift+Arrow = faster";
+            }
+
+            if (control == _huePanel)
+            {
+                return
+                    "Hue: ↑/↓ = change hue  •  Shift+↑/↓ = faster  •  Tab = next section";
+            }
+
+            if (control == _txtHex)
+            {
+                return
+                    "HEX: type #RRGGBB  •  Enter = Apply  •  Esc = Cancel";
+            }
+
+            if (control == _nudRed ||
+                control == _nudGreen ||
+                control == _nudBlue)
+            {
+                return
+                    "RGB: type 0–255 or use ↑/↓  •  Enter = Apply  •  Esc = Cancel";
+            }
+
+            if (control == _btnApply)
+            {
+                return
+                    "Apply: Space/Enter = accept colour  •  Esc = Cancel";
+            }
+
+            if (control == _btnCancel)
+            {
+                return
+                    "Cancel: Space/Enter/Esc = close without applying";
+            }
+
+            return
+                GetDefaultKeyboardHelp();
+        }
 
 
         private void InitializePicker()
@@ -336,7 +625,13 @@ namespace NoteHighlightAddin
                             320),
 
                     Cursor =
-                        Cursors.Cross
+                        Cursors.Cross,
+
+                    TabStop =
+                        true,
+
+                    AccessibleName =
+                        "Custom colour field"
                 };
 
             _saturationValuePanel.Paint +=
@@ -365,7 +660,13 @@ namespace NoteHighlightAddin
                             320),
 
                     Cursor =
-                        Cursors.Hand
+                        Cursors.Hand,
+
+                    TabStop =
+                        true,
+
+                    AccessibleName =
+                        "Hue"
                 };
 
             _huePanel.Paint +=
@@ -606,7 +907,12 @@ namespace NoteHighlightAddin
                             FlatStyle.Flat,
 
                         TabStop =
-                            false,
+                            true,
+
+                        AccessibleName =
+                            "Quick colour " +
+                            ToHex(
+                                color),
 
                         Tag =
                             color
@@ -1087,6 +1393,8 @@ namespace NoteHighlightAddin
             object sender,
             MouseEventArgs e)
         {
+            _saturationValuePanel.Focus();
+
             _draggingSaturationValue =
                 true;
 
@@ -1160,6 +1468,8 @@ namespace NoteHighlightAddin
             object sender,
             MouseEventArgs e)
         {
+            _huePanel.Focus();
+
             _draggingHue =
                 true;
 
@@ -1219,6 +1529,421 @@ namespace NoteHighlightAddin
         }
 
 
+        private Button GetFocusedSwatch()
+        {
+            Button swatch =
+                GetFocusedSwatch(
+                    _quickColors);
+
+            if (swatch != null)
+            {
+                return swatch;
+            }
+
+            return
+                GetFocusedSwatch(
+                    _recentColors);
+        }
+
+
+        private static Button GetFocusedSwatch(
+            FlowLayoutPanel palette)
+        {
+            if (palette == null)
+            {
+                return null;
+            }
+
+            foreach (Button swatch
+                in GetKeyboardSwatches(
+                    palette))
+            {
+                if (swatch.ContainsFocus)
+                {
+                    return swatch;
+                }
+            }
+
+            return null;
+        }
+
+
+        private static IList<Button> GetKeyboardSwatches(
+            FlowLayoutPanel palette)
+        {
+            var result =
+                new List<Button>();
+
+            if (palette == null)
+            {
+                return result;
+            }
+
+            foreach (Button swatch
+                in palette.Controls.OfType<Button>())
+            {
+                if (!swatch.Visible ||
+                    !swatch.Enabled)
+                {
+                    continue;
+                }
+
+                // Do not keyboard-navigate to swatches clipped by the
+                // compact Quick-colours viewport.
+                if (!palette.ClientRectangle.Contains(
+                    swatch.Bounds))
+                {
+                    continue;
+                }
+
+                result.Add(
+                    swatch);
+            }
+
+            return result;
+        }
+
+
+        private void MoveFocusedSwatch(
+            Button focusedSwatch,
+            Keys keyCode)
+        {
+            FlowLayoutPanel palette =
+                focusedSwatch.Parent as FlowLayoutPanel;
+
+            if (palette == null)
+            {
+                return;
+            }
+
+            IList<Button> swatches =
+                GetKeyboardSwatches(
+                    palette);
+
+            int currentIndex =
+                swatches.IndexOf(
+                    focusedSwatch);
+
+            if (currentIndex < 0)
+            {
+                return;
+            }
+
+            const int columns =
+                4;
+
+            int row =
+                currentIndex /
+                columns;
+
+            int column =
+                currentIndex %
+                columns;
+
+            int targetIndex =
+                currentIndex;
+
+            switch (keyCode)
+            {
+                case Keys.Left:
+                    if (column > 0)
+                    {
+                        targetIndex =
+                            currentIndex - 1;
+                    }
+                    break;
+
+                case Keys.Right:
+                    if (column <
+                        columns - 1 &&
+                        currentIndex + 1 <
+                        swatches.Count)
+                    {
+                        targetIndex =
+                            currentIndex + 1;
+                    }
+                    break;
+
+                case Keys.Up:
+                    if (row > 0)
+                    {
+                        targetIndex =
+                            currentIndex -
+                            columns;
+                    }
+                    break;
+
+                case Keys.Down:
+                    if (currentIndex +
+                        columns <
+                        swatches.Count)
+                    {
+                        targetIndex =
+                            currentIndex +
+                            columns;
+                    }
+                    break;
+            }
+
+            if (targetIndex ==
+                currentIndex)
+            {
+                return;
+            }
+
+            swatches[targetIndex].Focus();
+        }
+
+
+        private void AdjustSaturationValueFromKeyboard(
+            Keys keyCode,
+            bool faster)
+        {
+            double step =
+                faster
+                    ? 0.05
+                    : 0.01;
+
+            switch (keyCode)
+            {
+                case Keys.Left:
+                    _saturation -=
+                        step;
+                    break;
+
+                case Keys.Right:
+                    _saturation +=
+                        step;
+                    break;
+
+                case Keys.Up:
+                    _value +=
+                        step;
+                    break;
+
+                case Keys.Down:
+                    _value -=
+                        step;
+                    break;
+            }
+
+            _saturation =
+                ClampUnit(
+                    _saturation);
+
+            _value =
+                ClampUnit(
+                    _value);
+
+            SetSelectedColorFromHsv();
+        }
+
+
+        private void AdjustHueFromKeyboard(
+            Keys keyCode,
+            bool faster)
+        {
+            double step =
+                faster
+                    ? 10.0
+                    : 1.0;
+
+            if (keyCode ==
+                Keys.Up)
+            {
+                _hue -=
+                    step;
+            }
+            else if (keyCode ==
+                Keys.Down)
+            {
+                _hue +=
+                    step;
+            }
+
+            while (_hue < 0.0)
+            {
+                _hue +=
+                    360.0;
+            }
+
+            while (_hue >= 360.0)
+            {
+                _hue -=
+                    360.0;
+            }
+
+            SetSelectedColorFromHsv();
+        }
+
+
+        private static double ClampUnit(
+            double value)
+        {
+            return Math.Max(
+                0.0,
+                Math.Min(
+                    1.0,
+                    value));
+        }
+
+
+        private void MovePickerKeyboardFocus(
+            bool forward)
+        {
+            Control[] route =
+                GetPickerKeyboardRoute();
+
+            int currentIndex =
+                FindCurrentPickerKeyboardIndex(
+                    route);
+
+            int step =
+                forward
+                    ? 1
+                    : -1;
+
+            int candidateIndex =
+                currentIndex;
+
+            for (int attempts = 0;
+                attempts < route.Length;
+                attempts++)
+            {
+                if (candidateIndex < 0)
+                {
+                    candidateIndex =
+                        forward
+                            ? 0
+                            : route.Length - 1;
+                }
+                else
+                {
+                    candidateIndex =
+                        (candidateIndex +
+                            step +
+                            route.Length) %
+                        route.Length;
+                }
+
+                Control candidate =
+                    route[candidateIndex];
+
+                if (!CanUsePickerKeyboardFocus(
+                    candidate))
+                {
+                    continue;
+                }
+
+                candidate.Focus();
+
+                return;
+            }
+        }
+
+
+        private Control[] GetPickerKeyboardRoute()
+        {
+            return new Control[]
+            {
+                GetFirstKeyboardSwatch(
+                    _quickColors),
+
+                GetFirstKeyboardSwatch(
+                    _recentColors),
+
+                _saturationValuePanel,
+                _huePanel,
+                _txtHex,
+                _nudRed,
+                _nudGreen,
+                _nudBlue,
+                _btnCancel,
+                _btnApply
+            };
+        }
+
+
+        private int FindCurrentPickerKeyboardIndex(
+            Control[] route)
+        {
+            if (route == null)
+            {
+                return -1;
+            }
+
+            Button focusedSwatch =
+                GetFocusedSwatch();
+
+            if (focusedSwatch != null)
+            {
+                if (focusedSwatch.Parent ==
+                    _quickColors)
+                {
+                    return 0;
+                }
+
+                if (focusedSwatch.Parent ==
+                    _recentColors)
+                {
+                    return 1;
+                }
+            }
+
+            for (int index = 2;
+                index < route.Length;
+                index++)
+            {
+                Control candidate =
+                    route[index];
+
+                if (candidate != null &&
+                    !candidate.IsDisposed &&
+                    candidate.ContainsFocus)
+                {
+                    return index;
+                }
+            }
+
+            return -1;
+        }
+
+
+        private static Button GetFirstKeyboardSwatch(
+            FlowLayoutPanel palette)
+        {
+            return
+                GetKeyboardSwatches(
+                    palette)
+                .FirstOrDefault();
+        }
+
+
+        private static bool CanUsePickerKeyboardFocus(
+            Control control)
+        {
+            return
+                control != null &&
+                !control.IsDisposed &&
+                control.Visible &&
+                control.Enabled &&
+                control.CanSelect;
+        }
+
+
+        private static bool IsSwatchInPalette(
+            Control control,
+            FlowLayoutPanel palette)
+        {
+            return
+                control is Button &&
+                palette != null &&
+                ReferenceEquals(
+                    control.Parent,
+                    palette);
+        }
+
+
         private void LoadRecentColors()
         {
             if (_recentColors == null)
@@ -1262,7 +1987,12 @@ namespace NoteHighlightAddin
                         FlatStyle.Flat,
 
                     TabStop =
-                        false,
+                        true,
+
+                    AccessibleName =
+                        "Recent colour " +
+                        ToHex(
+                            color),
 
                     Tag =
                         color
@@ -1658,6 +2388,13 @@ namespace NoteHighlightAddin
 
                 ResizeRedraw =
                     true;
+
+                TabStop =
+                    true;
+
+                SetStyle(
+                    ControlStyles.Selectable,
+                    true);
 
                 SetStyle(
                     ControlStyles.AllPaintingInWmPaint |
