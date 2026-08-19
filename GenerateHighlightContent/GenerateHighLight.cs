@@ -79,7 +79,7 @@ namespace GenerateHighlightContent
 
                 _processRunner.Run(
                     PathManager.HighlightFolder,
-                    _section.ProcessName,
+                    PathManager.HighlightExe,
                     arguments);
 
                 if (!System.IO.File.Exists(
