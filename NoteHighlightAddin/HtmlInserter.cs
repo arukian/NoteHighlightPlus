@@ -140,15 +140,26 @@ namespace NoteHighlightAddin
                         // Remove background-color so the text has
                         // the correct contrast in dark mode.
                         int backgroundColorIndex =
-                            defaultStyle.IndexOf("background-color");
-
-                        defaultStyle = defaultStyle.Remove(
-                            backgroundColorIndex,
                             defaultStyle.IndexOf(
-                                ';',
-                                backgroundColorIndex) -
-                            backgroundColorIndex +
-                            1);
+                                "background-color",
+                                StringComparison.OrdinalIgnoreCase);
+
+                        if (backgroundColorIndex >= 0)
+                        {
+                            int backgroundColorEndIndex =
+                                defaultStyle.IndexOf(
+                                    ';',
+                                    backgroundColorIndex);
+
+                            if (backgroundColorEndIndex >= 0)
+                            {
+                                defaultStyle = defaultStyle.Remove(
+                                    backgroundColorIndex,
+                                    backgroundColorEndIndex -
+                                    backgroundColorIndex +
+                                    1);
+                            }
+                        }
                     }
 
                     item = item.Substring(item.IndexOf(">") + 1);
