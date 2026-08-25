@@ -203,6 +203,7 @@ namespace NoteHighlightAddin
 
             try
             {
+
                 HighlightWorkflowRequest request = BuildWorkflowRequest();
 
                 HighlightWorkflowResult result = _workflowService.Execute(request);

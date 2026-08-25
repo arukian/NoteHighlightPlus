@@ -13,8 +13,7 @@ namespace Infrastructure.Core
 
         static PathManager()
         {
-            Root = Path.GetDirectoryName(
-                Assembly.GetExecutingAssembly().Location);
+            Root = ResolveApplicationRoot();
 
             UserRoot = Path.Combine(
                 Environment.GetFolderPath(
@@ -23,6 +22,43 @@ namespace Infrastructure.Core
                 "NoteHighlight+");
 
             EnsureUserHighlightWorkspace();
+        }
+
+        // new method added to determine the root directory of the application, whether it's running inside OneNote or from a console application.
+        private static string ResolveApplicationRoot()
+        {
+            // When running inside OneNote, prefer the actual add-in assembly.
+            Assembly addInAssembly =
+                AppDomain.CurrentDomain
+                    .GetAssemblies()
+                    .FirstOrDefault(
+                        assembly =>
+                            string.Equals(
+                                assembly.GetName().Name,
+                                "NoteHighlightAddin",
+                                StringComparison.OrdinalIgnoreCase));
+
+            if (addInAssembly != null &&
+                !string.IsNullOrWhiteSpace(addInAssembly.Location))
+            {
+                return Path.GetDirectoryName(
+                    addInAssembly.Location);
+            }
+
+            // When running from TestConsole, use the executable folder.
+            Assembly entryAssembly =
+                Assembly.GetEntryAssembly();
+
+            if (entryAssembly != null &&
+                !string.IsNullOrWhiteSpace(entryAssembly.Location))
+            {
+                return Path.GetDirectoryName(
+                    entryAssembly.Location);
+            }
+
+            // Last fallback for unusual hosts.
+            return Path.GetDirectoryName(
+                Assembly.GetExecutingAssembly().Location);
         }
 
         public static string Ribbon =>
@@ -48,19 +84,24 @@ namespace Infrastructure.Core
             CombineUser("highlight", "langDefs");
 
         /// <summary>
-        /// highlight.exe remains in Program Files. The process is executed
-        /// with HighlightFolder as its working directory so it reads the
-        /// user's editable themes/langDefs without writing to Program Files.
+        /// Highlight executable used from the user's workspace.
+        /// Keeping the executable beside themes/langDefs ensures Highlight
+        /// resolves the editable user configuration.
         /// </summary>
         public static string HighlightExe =>
-            CombineInstalled("highlight", "highlight.exe");
+            CombineUser("highlight", "highlight.exe");
 
         private static void EnsureUserHighlightWorkspace()
         {
+
             string userHighlightFolder =
                 CombineUser("highlight");
 
             Directory.CreateDirectory(userHighlightFolder);
+
+            CopyRuntimeFile(
+                CombineInstalled("highlight", "highlight.exe"),
+                CombineUser("highlight", "highlight.exe"));
 
             CopyDirectoryMissing(
                 CombineInstalled("highlight", "themes"),
@@ -73,6 +114,34 @@ namespace Infrastructure.Core
             CopyFileIfMissing(
                 CombineInstalled("highlight", "filetypes.conf"),
                 CombineUser("highlight", "filetypes.conf"));
+        }
+
+        // adding method to copy exe and other files from the installed directory to the user's workspace, ensuring that the user has a working copy of the necessary files.
+
+        private static void CopyRuntimeFile(
+    string sourceFile,
+    string destinationFile)
+        {
+            if (!File.Exists(sourceFile))
+            {
+                return;
+            }
+
+            string destinationDirectory =
+                Path.GetDirectoryName(
+                    destinationFile);
+
+            if (!string.IsNullOrWhiteSpace(
+                destinationDirectory))
+            {
+                Directory.CreateDirectory(
+                    destinationDirectory);
+            }
+
+            File.Copy(
+                sourceFile,
+                destinationFile,
+                overwrite: true);
         }
 
         private static void CopyDirectoryMissing(

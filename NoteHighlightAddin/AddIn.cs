@@ -82,13 +82,6 @@ namespace NoteHighlightAddin
 
                 //    var workingDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ribbon.xml");
 
-                // Mensajes te prueba - ya se soluciono - los voy a comentar 
-                /*
-                MessageBox.Show("Root: " + PathManager.Root);
-                MessageBox.Show("Ribbon: " + PathManager.Ribbon);
-                MessageBox.Show("Exist: " + File.Exists(PathManager.Ribbon));
-                */
-
                 string file = File.ReadAllText(PathManager.Ribbon);
 
                 // MessageBox.Show("Ribbon Leido Correctamente");

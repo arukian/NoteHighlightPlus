@@ -1,15 +1,19 @@
 ﻿using GenerateHighlightContent;
 using Infrastructure.Core;
+using NoteHighlightAddin;
 using NoteHighlightAddin.Highlighting.KeywordGroups;
 using NoteHighlightAddin.Highlighting.KeywordGroups.Services;
 using NoteHighlightAddin.Highlighting.Preview.Services;
+using NoteHighlightAddin.Highlighting.Themes;
 using System;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
-using NoteHighlightAddin;
+using System.Linq;
 using System.Windows.Forms;
-using NoteHighlightAddin.Highlighting.Themes;
+using System.Linq;
+using System.Diagnostics;
+using GenerateHighlightContent;
 
 namespace GenerateHighlightContent.TestConsole
 {
@@ -22,11 +26,14 @@ namespace GenerateHighlightContent.TestConsole
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
-            TestRealThemeRoundTrip();
+            TestHighlightLanguageSource();
 
-            Application.Run(
-                new SettingsForm());
+            Console.WriteLine(
+                "Press any key to finish.");
+
+            Console.ReadKey();
         }
+        
 
 
 
@@ -641,6 +648,244 @@ namespace GenerateHighlightContent.TestConsole
                 + configuration.Groups.Count);
         }
 
+
+
+        private static void TestRealLanguageRoundTrip()
+        {
+            Console.WriteLine(
+                "=== Real language roundtrip test ===");
+
+            string sourcePath =
+                Path.Combine(
+                    PathManager.LanguagesFolder,
+                    "python.lang");
+
+            string roundTripFolder = Path.Combine(
+        Path.GetTempPath(),
+        "NoteHighlight+",
+        "LanguageRoundTrip",
+        Guid.NewGuid().ToString("N"));
+
+            Directory.CreateDirectory(
+                roundTripFolder);
+
+            string outputPath =
+                Path.Combine(
+                    roundTripFolder,
+                    "python.lang");
+
+            Console.WriteLine(
+                "Source:");
+
+            Console.WriteLine(
+                sourcePath);
+
+            Console.WriteLine();
+
+            var service =
+                new LanguageEditorService();
+
+            EditableLanguageConfiguration original =
+                service.LoadFromFile(
+                    sourcePath);
+
+            Console.WriteLine(
+                "Language: "
+                + original.Language);
+
+            Console.WriteLine(
+                "Groups: "
+                + original.Groups.Count);
+
+            service.SaveAs(
+                original,
+                outputPath);
+
+            EditableLanguageConfiguration roundTrip =
+                service.LoadFromFile(
+                    outputPath);
+
+            CompareLanguages(
+                original,
+                roundTrip);
+
+            Console.WriteLine();
+            Console.WriteLine(
+                "Roundtrip file:");
+
+            Console.WriteLine(
+                outputPath);
+
+            Console.WriteLine();
+            Console.WriteLine(
+                "RESULT: REAL LANGUAGE ROUNDTRIP PASSED");
+
+            Console.WriteLine(
+                "=== Real language roundtrip test finished ===");
+
+            Console.WriteLine();
+        }
+
+        private static void TestHighlightLanguageSource()
+        {
+            Console.WriteLine(
+                "=== Highlight language source test ===");
+
+            var parameter =
+                new HighLightParameter
+                {
+                    FileName = "language-source-test.py",
+
+                    Content =
+                        "NHP_APPDATA_TEST\r\n" +
+                        "if True:\r\n" +
+                        "    print(\"test\")",
+
+                    CodeType =
+                        "python",
+
+                    HighLightStyle =
+                        "shinx",
+
+                    ShowLineNumber =
+                        false,
+
+                    Font =
+                        "Consolas",
+
+                    FontSize =
+                        10
+                };
+
+            var generator =
+                new GenerateHighLight();
+
+            string outputFile =
+                generator.GenerateHighLightCode(
+                    parameter);
+
+            Console.WriteLine();
+            Console.WriteLine(
+                "Generated output:");
+
+            Console.WriteLine(
+                outputFile);
+
+            Process.Start(
+                new ProcessStartInfo
+                {
+                    FileName = outputFile,
+                    UseShellExecute = true
+                });
+
+            Console.WriteLine();
+            Console.WriteLine(
+                "=== Highlight language source test finished ===");
+        }
+
+        private static void CompareLanguages(
+    EditableLanguageConfiguration expected,
+    EditableLanguageConfiguration actual)
+        {
+            AssertEqual(
+                "Language",
+                expected.Language,
+                actual.Language);
+
+            AssertEqual(
+                "Description",
+                expected.Description,
+                actual.Description);
+
+            AssertEqual(
+                "CaseSensitive",
+                expected.CaseSensitive,
+                actual.CaseSensitive);
+
+            AssertEqual(
+                "Extension count",
+                expected.Extensions.Count,
+                actual.Extensions.Count);
+
+            for (int index = 0;
+                index < expected.Extensions.Count;
+                index++)
+            {
+                AssertEqual(
+                    "Extension[" + index + "]",
+                    expected.Extensions[index],
+                    actual.Extensions[index]);
+            }
+
+            AssertEqual(
+                "Group count",
+                expected.Groups.Count,
+                actual.Groups.Count);
+
+            foreach (KeywordGroupConfiguration expectedGroup
+                in expected.Groups)
+            {
+                KeywordGroupConfiguration actualGroup =
+                    actual.Groups.FirstOrDefault(
+                        group =>
+                            group.Id == expectedGroup.Id);
+
+                if (actualGroup == null)
+                {
+                    throw new InvalidOperationException(
+                        "Missing group: "
+                        + expectedGroup.Id);
+                }
+
+                Console.WriteLine();
+                Console.WriteLine(
+                    "--- Group "
+                    + expectedGroup.Id
+                    + " ---");
+
+                AssertEqual(
+                    "Group " + expectedGroup.Id + " word count",
+                    expectedGroup.Words.Count,
+                    actualGroup.Words.Count);
+
+                foreach (string word
+                    in expectedGroup.Words)
+                {
+                    bool exists =
+                        actualGroup.Words.Contains(
+                            word);
+
+                    AssertEqual(
+                        "Group "
+                        + expectedGroup.Id
+                        + " word: "
+                        + word,
+                        true,
+                        exists);
+                }
+
+                AssertEqual(
+                    "Group " + expectedGroup.Id + " regex count",
+                    expectedGroup.Regex.Count,
+                    actualGroup.Regex.Count);
+
+                foreach (string regex
+                    in expectedGroup.Regex)
+                {
+                    bool exists =
+                        actualGroup.Regex.Contains(
+                            regex);
+
+                    AssertEqual(
+                        "Group "
+                        + expectedGroup.Id
+                        + " regex",
+                        true,
+                        exists);
+                }
+            }
+        }
+
         private static HighLightParameter
             CreatePreviewParameter()
         {
@@ -649,17 +894,7 @@ namespace GenerateHighlightContent.TestConsole
                 FileName =
                     "notehighlight_preview.py",
 
-                Content =
-                    "class PreviewExample:\r\n" +
-                    "    def __init__(self, value):\r\n" +
-                    "        self.value = value\r\n" +
-                    "\r\n" +
-                    "    def print_value(self):\r\n" +
-                    "        if self.value is not None:\r\n" +
-                    "            print(self.value)\r\n" +
-                    "\r\n" +
-                    "example = PreviewExample(True)\r\n" +
-                    "example.print_value()\r\n",
+                Content = "NHP_APPDATA_TEST",
 
                 CodeType =
                     "python",
