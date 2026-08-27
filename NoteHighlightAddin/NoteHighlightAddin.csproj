@@ -118,6 +118,7 @@
     <Compile Include="ColorPickerForm.cs">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Include="ComStartupLogger.cs" />
     <Compile Include="KeyboardFocusVisualManager.cs" />
     <Compile Include="KeyboardHelpManager.cs" />
     <Compile Include="KeyboardShortcutsForm.cs">
