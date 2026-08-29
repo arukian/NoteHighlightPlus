@@ -8,53 +8,84 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace NoteHighlightForm.Properties {
-    
-    
+namespace NoteHighlightForm.Properties
+{
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
-    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.VisualStudio.Editors.SettingsDesigner.SettingsSingleFileGenerator", "14.0.0.0")]
-    internal sealed partial class Settings : global::System.Configuration.ApplicationSettingsBase {
-        
-        private static Settings defaultInstance = ((Settings)(global::System.Configuration.ApplicationSettingsBase.Synchronized(new Settings())));
-        
-        public static Settings Default {
-            get {
+    [global::System.CodeDom.Compiler.GeneratedCodeAttribute(
+        "Microsoft.VisualStudio.Editors.SettingsDesigner.SettingsSingleFileGenerator",
+        "14.0.0.0")]
+    internal sealed partial class Settings :
+        global::System.Configuration.ApplicationSettingsBase
+    {
+        private static Settings defaultInstance =
+            ((Settings)(
+                global::System.Configuration.ApplicationSettingsBase.Synchronized(
+                    new Settings())));
+
+        public static Settings Default
+        {
+            get
+            {
                 return defaultInstance;
             }
         }
-        
+
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("True")]
-        public bool ShowLineNumber {
-            get {
+        public bool ShowLineNumber
+        {
+            get
+            {
                 return ((bool)(this["ShowLineNumber"]));
             }
-            set {
+            set
+            {
                 this["ShowLineNumber"] = value;
             }
         }
-        
+
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("False")]
-        public bool SaveOnClipboard {
-            get {
+        public bool SaveOnClipboard
+        {
+            get
+            {
                 return ((bool)(this["SaveOnClipboard"]));
             }
-            set {
+            set
+            {
                 this["SaveOnClipboard"] = value;
             }
         }
-        
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool HasBackgroundOverride
+        {
+            get
+            {
+                return ((bool)(this["HasBackgroundOverride"]));
+            }
+            set
+            {
+                this["HasBackgroundOverride"] = value;
+            }
+        }
+
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("0")]
-        public int HighLightStyle {
-            get {
+        public int HighLightStyle
+        {
+            get
+            {
                 return ((int)(this["HighLightStyle"]));
             }
-            set {
+            set
+            {
                 this["HighLightStyle"] = value;
             }
         }
@@ -81,7 +112,7 @@ namespace NoteHighlightForm.Properties {
         {
             get
             {
-                return (bool)(this["QuickStyle"]);
+                return ((bool)(this["QuickStyle"]));
             }
             set
             {
@@ -96,7 +127,7 @@ namespace NoteHighlightForm.Properties {
         {
             get
             {
-                return (bool)(this["DarkMode"]);
+                return ((bool)(this["DarkMode"]));
             }
             set
             {
@@ -111,7 +142,7 @@ namespace NoteHighlightForm.Properties {
         {
             get
             {
-                return (string)(this["Font"]);
+                return ((string)(this["Font"]));
             }
             set
             {
@@ -126,7 +157,7 @@ namespace NoteHighlightForm.Properties {
         {
             get
             {
-                return (int)(this["FontSize"]);
+                return ((int)(this["FontSize"]));
             }
             set
             {
@@ -141,7 +172,7 @@ namespace NoteHighlightForm.Properties {
         {
             get
             {
-                return (bool)(this["ShowTableBorder"]);
+                return ((bool)(this["ShowTableBorder"]));
             }
             set
             {

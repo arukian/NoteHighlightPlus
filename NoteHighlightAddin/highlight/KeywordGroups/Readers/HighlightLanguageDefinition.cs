@@ -15,6 +15,7 @@ namespace GenerateHighlightContent.LanguageDefinitions
         {
             Extensions = new List<string>();
             Groups = new List<HighlightKeywordGroup>();
+            OriginalContent = string.Empty;
         }
 
         /// <summary>
@@ -43,5 +44,12 @@ namespace GenerateHighlightContent.LanguageDefinitions
         /// Grupos de keywords y expresiones regulares del lenguaje.
         /// </summary>
         public IList<HighlightKeywordGroup> Groups { get; set; }
+
+        /// <summary>
+        /// Contenido original completo del archivo .lang.
+        /// Se conserva para que el writer pueda modificar únicamente
+        /// las secciones editables sin eliminar reglas de sintaxis.
+        /// </summary>
+        public string OriginalContent { get; set; }
     }
 }

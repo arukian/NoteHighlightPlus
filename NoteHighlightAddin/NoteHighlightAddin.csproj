@@ -189,6 +189,7 @@
     <Compile Include="KeywordWordEditorController.cs" />
     <Compile Include="LanguageManager.cs" />
     <Compile Include="LanguageDefinitionResolver.cs" />
+    <Compile Include="LanguagePreferenceProvider.cs" />
     <Compile Include="LanguageRibbonController.cs" />
     <Compile Include="MainForm.cs">
       <SubType>Form</SubType>

@@ -106,7 +106,7 @@ namespace NoteHighlightAddin
             CreateKeyboardHelpButton();
 
             txtCode.Text = selectedText;
-            FormClosed += SettingsForm_FormClosed;
+            FormClosed += CodeForm_FormClosed;
 
             if (_quickStyle)
             {
@@ -139,14 +139,24 @@ namespace NoteHighlightAddin
             try
             {
                 _initializer.Initialize(
-                    txtCode,
-                    _codeType,
-                    cbx_style,
-                    btnBackground,
-                    cbx_Clipboard,
-                    cbx_lineNumber);
+                txtCode,
+                _codeType,
+                cbx_style,
+                btnBackground,
+                cbx_Clipboard,
+                cbx_lineNumber);
 
-                ResetBackgroundToSelectedTheme();
+                MainFormSettings settings =
+                    _settingsProvider.Load();
+
+                _hasBackgroundOverride =
+                    settings.HasBackgroundOverride;
+
+                if (!_hasBackgroundOverride)
+                {
+                    ResetBackgroundToSelectedTheme();
+                }
+
                 UpdateBackgroundDisplay();
 
                 if (!_quickStyle)
@@ -237,8 +247,13 @@ namespace NoteHighlightAddin
                     cbx_Clipboard,
                     cbx_lineNumber);
 
+            settings.HasBackgroundOverride =
+                _hasBackgroundOverride;
+
             _settingsProvider.Save(settings);
-            _themePreferenceProvider.SaveThemeName(CodeStyle);
+
+            _themePreferenceProvider.SaveThemeName(
+                CodeStyle);
         }
 
         private void btnBackground_Click(object sender, EventArgs e)

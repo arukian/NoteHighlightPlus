@@ -24,7 +24,8 @@ namespace NoteHighlightAddin.Highlighting.KeywordGroups
                 {
                     Language = definition.Language,
                     Description = definition.Description,
-                    CaseSensitive = definition.CaseSensitive
+                    CaseSensitive = definition.CaseSensitive,
+                    OriginalContent = definition.OriginalContent
                 };
 
             foreach (string extension in definition.Extensions)
@@ -88,7 +89,8 @@ namespace NoteHighlightAddin.Highlighting.KeywordGroups
                 {
                     Language = configuration.Language,
                     Description = configuration.Description,
-                    CaseSensitive = configuration.CaseSensitive
+                    CaseSensitive = configuration.CaseSensitive,
+                    OriginalContent = configuration.OriginalContent
                 };
 
             foreach (string extension in configuration.Extensions)

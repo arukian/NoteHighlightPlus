@@ -26,14 +26,14 @@ namespace GenerateHighlightContent.TestConsole
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
-            TestHighlightLanguageSource();
+            TestRealLanguageRoundTrip();
 
             Console.WriteLine(
                 "Press any key to finish.");
 
             Console.ReadKey();
         }
-        
+
 
 
 
@@ -654,13 +654,14 @@ namespace GenerateHighlightContent.TestConsole
         {
             Console.WriteLine(
                 "=== Real language roundtrip test ===");
-
+      
             string sourcePath =
                 Path.Combine(
                     PathManager.LanguagesFolder,
                     "python.lang");
 
-            string roundTripFolder = Path.Combine(
+
+        string roundTripFolder = Path.Combine(
         Path.GetTempPath(),
         "NoteHighlight+",
         "LanguageRoundTrip",

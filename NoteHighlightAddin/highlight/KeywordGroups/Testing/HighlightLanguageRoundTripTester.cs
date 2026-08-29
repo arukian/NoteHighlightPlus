@@ -77,6 +77,11 @@ namespace NoteHighlightAddin.Highlighting.KeywordGroups.Testing
                         originalDefinition,
                         generatedDefinition);
 
+                ComparePreservedSyntaxSections(
+                    differences,
+                    File.ReadAllText(sourceFilePath),
+                    File.ReadAllText(temporaryFilePath));
+
                 return new RoundTripTestResult
                 {
                     SourceFilePath =
@@ -134,6 +139,56 @@ namespace NoteHighlightAddin.Highlighting.KeywordGroups.Testing
                 actual.Groups);
 
             return differences;
+        }
+
+        private static void ComparePreservedSyntaxSections(
+            List<string> differences,
+            string expectedContent,
+            string actualContent)
+        {
+            string[] sectionNames =
+            {
+                "Strings",
+                "Comments",
+                "Operators",
+                "PreProcessor"
+            };
+
+            foreach (string sectionName in sectionNames)
+            {
+                bool expectedContains =
+                    ContainsSection(
+                        expectedContent,
+                        sectionName);
+
+                bool actualContains =
+                    ContainsSection(
+                        actualContent,
+                        sectionName);
+
+                if (expectedContains && !actualContains)
+                {
+                    differences.Add(
+                        $"Generated definition lost preserved section '{sectionName}'.");
+                }
+            }
+        }
+
+        private static bool ContainsSection(
+            string content,
+            string sectionName)
+        {
+            if (string.IsNullOrWhiteSpace(content))
+            {
+                return false;
+            }
+
+            return System.Text.RegularExpressions.Regex.IsMatch(
+                content,
+                @"\b" +
+                System.Text.RegularExpressions.Regex.Escape(sectionName) +
+                @"\s*=\s*\{",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
         }
 
         private static void CompareGroups(

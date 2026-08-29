@@ -47,7 +47,8 @@ namespace NoteHighlightAddin
         private readonly IPreviewSampleCodeService _previewSampleCodeService;
         private readonly IHighlightThemeReader _themeReader;
         private readonly IHighlightThemeSerializer _themeSerializer;
-        private readonly ThemePreferenceProvider _themePreferenceProvider;
+        private readonly ThemePreferenceProvider _themePreferenceProvider;  
+        private readonly LanguagePreferenceProvider _languagePreferenceProvider;
         private readonly ThemeResetService _themeResetService;
         private readonly ConfigurationExportService _configurationExportService;
         private readonly ConfigurationImportService _configurationImportService;
@@ -129,6 +130,9 @@ namespace NoteHighlightAddin
 
             _themePreferenceProvider =
                 new ThemePreferenceProvider();
+
+            _languagePreferenceProvider =
+                new LanguagePreferenceProvider();
 
             _themeResetService =
                 new ThemeResetService();
@@ -2228,6 +2232,15 @@ namespace NoteHighlightAddin
             {
                 e.Cancel = true;
                 return;
+            }
+
+            LanguageInfo selectedLanguage = lbxLanguages.SelectedItem as LanguageInfo;
+
+            if (selectedLanguage != null)
+            {
+                _languagePreferenceProvider
+                    .SaveLanguageTag(
+                        selectedLanguage.Tag);
             }
 
             _isFormClosingConfirmed =
@@ -6281,6 +6294,8 @@ namespace NoteHighlightAddin
 
             _languageRibbonController.RefreshLanguageList();
 
+            RestorePreferredLanguageSelection();
+
             EnsureSelectedLanguageIsLoaded();
 
             LoadAvailableThemes();
@@ -6292,6 +6307,56 @@ namespace NoteHighlightAddin
             UpdateSaveButtonState();
 
             RequestPreviewRefresh();
+        }
+
+        private void RestorePreferredLanguageSelection()
+        {
+            string preferredLanguageTag =
+                _languagePreferenceProvider.ReadLanguageTag();
+
+            if (string.IsNullOrWhiteSpace(
+                preferredLanguageTag))
+            {
+                return;
+            }
+
+            try
+            {
+                _isChangingLanguageSelection =
+                    true;
+
+                for (int index = 0;
+                    index < lbxLanguages.Items.Count;
+                    index++)
+                {
+                    LanguageInfo language =
+                        lbxLanguages.Items[index]
+                        as LanguageInfo;
+
+                    if (language == null)
+                    {
+                        continue;
+                    }
+
+                    if (!string.Equals(
+                        language.Tag,
+                        preferredLanguageTag,
+                        StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    lbxLanguages.SelectedIndex =
+                        index;
+
+                    return;
+                }
+            }
+            finally
+            {
+                _isChangingLanguageSelection =
+                    false;
+            }
         }
 
         private void EnsureSelectedLanguageIsLoaded()
@@ -6312,6 +6377,15 @@ namespace NoteHighlightAddin
 
                 _previousLanguageIndex =
                     lbxLanguages.SelectedIndex;
+
+                LanguageInfo selectedLanguage = lbxLanguages.SelectedItem as LanguageInfo;
+
+                if (selectedLanguage != null)
+                {
+                    _languagePreferenceProvider
+                        .SaveLanguageTag(
+                            selectedLanguage.Tag);
+                }
 
                 RefreshSelectedThemeStyle();
             }

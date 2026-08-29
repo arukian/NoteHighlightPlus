@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace NoteHighlightAddin.Highlighting.KeywordGroups.Writers
 {
@@ -56,6 +57,13 @@ namespace NoteHighlightAddin.Highlighting.KeywordGroups.Writers
             ValidateDefinition(
                 definition);
 
+            if (!string.IsNullOrWhiteSpace(
+                definition.OriginalContent))
+            {
+                return SerializePreservingOriginalContent(
+                    definition);
+            }
+
             var builder =
                 new StringBuilder();
 
@@ -68,6 +76,303 @@ namespace NoteHighlightAddin.Highlighting.KeywordGroups.Writers
                 definition.Groups);
 
             return builder.ToString();
+        }
+
+
+        private static string SerializePreservingOriginalContent(
+            HighlightLanguageDefinition definition)
+        {
+            string content =
+                definition.OriginalContent;
+
+            content = ReplaceQuotedProperty(
+                content,
+                "Description",
+                definition.Description);
+
+            content = ReplaceCaseSensitivity(
+                content,
+                definition.CaseSensitive);
+
+            var extensionsBuilder = new StringBuilder();
+            WriteExtensions(
+                extensionsBuilder,
+                definition.Extensions);
+
+            content = ReplaceNamedSection(
+                content,
+                "Extensions",
+                extensionsBuilder.ToString().TrimEnd());
+
+            var keywordsBuilder = new StringBuilder();
+            WriteKeywords(
+                keywordsBuilder,
+                definition.Groups);
+
+            content = ReplaceNamedSection(
+                content,
+                "Keywords",
+                keywordsBuilder.ToString().TrimEnd());
+
+            return content;
+        }
+
+        private static string ReplaceQuotedProperty(
+            string content,
+            string propertyName,
+            string value)
+        {
+            string replacement =
+                propertyName +
+                " = \"" +
+                EscapeQuotedValue(value) +
+                "\"";
+
+            string pattern =
+                @"\b" +
+                Regex.Escape(propertyName) +
+                @"\s*=\s*[""'][^""']*[""']";
+
+            if (Regex.IsMatch(
+                content,
+                pattern,
+                RegexOptions.IgnoreCase))
+            {
+                return Regex.Replace(
+                    content,
+                    pattern,
+                    replacement,
+                    RegexOptions.IgnoreCase);
+            }
+
+            return replacement +
+                Environment.NewLine +
+                content;
+        }
+
+        private static string ReplaceCaseSensitivity(
+            string content,
+            bool caseSensitive)
+        {
+            string casePattern =
+                @"\bCaseSensitive\s*=\s*(?:true|false)";
+
+            if (Regex.IsMatch(
+                content,
+                casePattern,
+                RegexOptions.IgnoreCase))
+            {
+                return Regex.Replace(
+                    content,
+                    casePattern,
+                    "CaseSensitive = " +
+                    ToLuaBoolean(caseSensitive),
+                    RegexOptions.IgnoreCase);
+            }
+
+            string ignoreCasePattern =
+                @"\bIgnoreCase\s*=\s*(?:true|false)";
+
+            if (Regex.IsMatch(
+                content,
+                ignoreCasePattern,
+                RegexOptions.IgnoreCase))
+            {
+                return Regex.Replace(
+                    content,
+                    ignoreCasePattern,
+                    "IgnoreCase = " +
+                    ToLuaBoolean(!caseSensitive),
+                    RegexOptions.IgnoreCase);
+            }
+
+            return "CaseSensitive = " +
+                ToLuaBoolean(caseSensitive) +
+                Environment.NewLine +
+                content;
+        }
+
+        private static string ReplaceNamedSection(
+            string content,
+            string sectionName,
+            string replacement)
+        {
+            Match match = Regex.Match(
+                content,
+                @"\b" + Regex.Escape(sectionName) + @"\s*=\s*\{",
+                RegexOptions.IgnoreCase);
+
+            if (!match.Success)
+            {
+                return content.TrimEnd() +
+                    Environment.NewLine +
+                    Environment.NewLine +
+                    replacement +
+                    Environment.NewLine;
+            }
+
+            int openingBrace =
+                content.IndexOf('{', match.Index);
+
+            int closingBrace =
+                FindMatchingBrace(
+                    content,
+                    openingBrace);
+
+            int start = match.Index;
+            int length = closingBrace - start + 1;
+
+            return content.Remove(start, length)
+                .Insert(start, replacement);
+        }
+
+        private static int FindMatchingBrace(
+            string content,
+            int openingBraceIndex)
+        {
+            int depth = 0;
+            bool insideString = false;
+            char stringDelimiter = '\0';
+            bool escaped = false;
+
+            for (int index = openingBraceIndex;
+                index < content.Length;
+                index++)
+            {
+                char current = content[index];
+
+                if (insideString)
+                {
+                    if (escaped)
+                    {
+                        escaped = false;
+                        continue;
+                    }
+
+                    if (current == '\\')
+                    {
+                        escaped = true;
+                        continue;
+                    }
+
+                    if (current == stringDelimiter)
+                    {
+                        insideString = false;
+                    }
+
+                    continue;
+                }
+
+                if (TrySkipLuaComment(content, ref index) ||
+                    TrySkipLuaLongBracket(content, ref index))
+                {
+                    continue;
+                }
+
+                if (current == '"' || current == '\'')
+                {
+                    insideString = true;
+                    stringDelimiter = current;
+                    continue;
+                }
+
+                if (current == '{')
+                {
+                    depth++;
+                }
+                else if (current == '}')
+                {
+                    depth--;
+
+                    if (depth == 0)
+                    {
+                        return index;
+                    }
+                }
+            }
+
+            throw new InvalidDataException(
+                "The language definition contains unbalanced braces.");
+        }
+
+        private static bool TrySkipLuaLongBracket(
+            string content,
+            ref int index)
+        {
+            if (content[index] != '[')
+            {
+                return false;
+            }
+
+            int cursor = index + 1;
+
+            while (cursor < content.Length &&
+                   content[cursor] == '=')
+            {
+                cursor++;
+            }
+
+            if (cursor >= content.Length ||
+                content[cursor] != '[')
+            {
+                return false;
+            }
+
+            int equalsCount = cursor - index - 1;
+            string closing =
+                "]" + new string('=', equalsCount) + "]";
+
+            int closeIndex = content.IndexOf(
+                closing,
+                cursor + 1,
+                StringComparison.Ordinal);
+
+            if (closeIndex < 0)
+            {
+                throw new InvalidDataException(
+                    "The language definition contains an unterminated Lua long bracket.");
+            }
+
+            index = closeIndex + closing.Length - 1;
+            return true;
+        }
+
+        private static bool TrySkipLuaComment(
+            string content,
+            ref int index)
+        {
+            if (index + 1 >= content.Length ||
+                content[index] != '-' ||
+                content[index + 1] != '-')
+            {
+                return false;
+            }
+
+            int longBracketStart = index + 2;
+
+            if (longBracketStart < content.Length &&
+                content[longBracketStart] == '[')
+            {
+                int temp = longBracketStart;
+
+                if (TrySkipLuaLongBracket(
+                    content,
+                    ref temp))
+                {
+                    index = temp;
+                    return true;
+                }
+            }
+
+            int lineEnd = content.IndexOf(
+                '\n',
+                index + 2);
+
+            index = lineEnd < 0
+                ? content.Length - 1
+                : lineEnd;
+
+            return true;
         }
 
         private static void WriteHeader(

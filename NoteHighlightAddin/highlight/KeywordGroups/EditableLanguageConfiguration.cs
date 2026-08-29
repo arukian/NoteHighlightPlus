@@ -22,5 +22,11 @@ namespace NoteHighlightAddin.Highlighting.KeywordGroups
             new List<string>();
 
         public List<KeywordGroupConfiguration> Groups { get; set; }
+
+        /// <summary>
+        /// Copia del contenido .lang original para preservar secciones
+        /// no editables (Strings, Comments, Operators, etc.).
+        /// </summary>
+        public string OriginalContent { get; set; }
     }
 }

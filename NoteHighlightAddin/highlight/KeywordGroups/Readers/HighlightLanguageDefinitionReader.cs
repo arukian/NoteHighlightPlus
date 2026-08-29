@@ -57,7 +57,9 @@ namespace NoteHighlightAddin.Highlighting.KeywordGroups.Readers
 
                     CaseSensitive =
                         ReadCaseSensitive(
-                            content)
+                            content),
+
+                    OriginalContent = content
                 };
 
             foreach (string extension

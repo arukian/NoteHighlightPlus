@@ -8,6 +8,8 @@ namespace NoteHighlightAddin
 
         public Color BackgroundColor { get; set; }
 
+        public bool HasBackgroundOverride { get; set; }
+
         public bool SaveOnClipboard { get; set; }
 
         public bool ShowLineNumber { get; set; }
