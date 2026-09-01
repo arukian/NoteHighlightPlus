@@ -168,7 +168,7 @@ Global
 		{14150192-610F-4B74-95A6-B744B17A4C02}.LocalDebug|x86.Build.0 = Release|Any CPU
 		{14150192-610F-4B74-95A6-B744B17A4C02}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{14150192-610F-4B74-95A6-B744B17A4C02}.Release|Any CPU.Build.0 = Release|Any CPU
-		{14150192-610F-4B74-95A6-B744B17A4C02}.Release|x64.ActiveCfg = Release|Any CPU
+		{14150192-610F-4B74-95A6-B744B17A4C02}.Release|x64.ActiveCfg = Release|x64
 		{14150192-610F-4B74-95A6-B744B17A4C02}.Release|x86.ActiveCfg = Release|Any CPU
 		{14150192-610F-4B74-95A6-B744B17A4C02}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection

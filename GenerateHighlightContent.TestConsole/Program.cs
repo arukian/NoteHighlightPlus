@@ -23,19 +23,240 @@ namespace GenerateHighlightContent.TestConsole
         [STAThread]
         private static void Main()
         {
-            Application.EnableVisualStyles();
-            Application.SetCompatibleTextRenderingDefault(false);
+            TestLanguageDetectionConfidence();
 
-            TestRealLanguageRoundTrip();
-
+            Console.WriteLine();
             Console.WriteLine(
-                "Press any key to finish.");
+                "Press any key to exit...");
 
             Console.ReadKey();
         }
 
+        private static void TestLanguageDetectionConfidence()
+        {
+            var detector =
+                new NoteHighlightAddin.LanguageDetectionService();
+
+            var samples = new[]
+            {
+
+                new
+                {
+                    Name = "SQL strong",
+                    Code =
+                @"SELECT id, name
+                FROM users
+                WHERE active = 1
+                ORDER BY name;"
+                },
+        new
+        {
+            Name = "Python strong",
+            Code =
+@"def greet(name):
+    print(name)"
+        },
+
+        new
+        {
+            Name = "JavaScript strong",
+            Code =
+@"const value = 10;
+console.log(value);"
+        },
+
+        new
+        {
+            Name = "C# strong",
+            Code =
+@"using System;
+
+Console.WriteLine(""Hello"");"
+        },
+
+        new
+        {
+            Name = "Ambiguous var",
+            Code =
+@"var x = 1;"
+        },
+
+        new
+        {
+            Name = "Ambiguous class",
+            Code =
+@"public class Test
+{
+}"
+        },
+
+        new
+        {
+            Name = "Small Python",
+            Code =
+@"print(""Hello"")"
+        },
+
+        new
+        {
+            Name = "Unknown",
+            Code =
+@"hello world"
+        }
+    };
+
+            Console.WriteLine(
+                "=== Language Detection Confidence Test ===");
+
+            Console.WriteLine();
+
+            foreach (var sample in samples)
+            {
+                var result =
+                    detector.DetectDetailed(
+                        sample.Code);
+
+                Console.WriteLine(
+                    "Sample     : " + sample.Name);
+
+                Console.WriteLine(
+                    "Language   : " +
+                    (result.Language ?? "<null>"));
+
+                Console.WriteLine(
+                    "Score      : " +
+                    result.Score);
+
+                Console.WriteLine(
+                    "Second     : " +
+                    result.SecondBestScore);
+
+                Console.WriteLine(
+                    "Confidence : " +
+                    result.Confidence);
+
+                Console.WriteLine(
+                    new string('-', 50));
+            }
+        }
 
 
+        private static void TestLanguageDetection()
+        {
+            var detector =
+                new NoteHighlightAddin.LanguageDetectionService();
+
+                        var samples = new[]
+                        {
+                    new
+                    {
+                        Name = "Python",
+                        Code =
+            @"while True:
+                print(""Hello"")"
+                    },
+
+                    new
+                    {
+                        Name = "JavaScript",
+                        Code =
+            @"const value = 10;
+            console.log(value);"
+                    },
+
+                    new
+                    {
+                        Name = "Java",
+                        Code =
+            @"public class Hello {
+                public static void main(String[] args) {
+                    System.out.println(""Hello"");
+                }
+            }"
+                    },
+
+                    new
+                    {
+                        Name = "C#",
+                        Code =
+            @"using System;
+
+            public class Hello
+            {
+                public static void Main()
+                {
+                    Console.WriteLine(""Hello"");
+                }
+            }"
+                    },
+
+                    new
+                    {
+                        Name = "SQL",
+                        Code =
+            @"SELECT id, name
+            FROM users
+            WHERE active = 1
+            ORDER BY name;"
+                    },
+
+                    new
+                    {
+                        Name = "HTML",
+                        Code =
+            @"<!DOCTYPE html>
+            <html>
+            <body>
+                <div>Hello</div>
+            </body>
+            </html>"
+                    },
+
+                    new
+                    {
+                        Name = "CSS",
+                        Code =
+            @"body {
+                background: black;
+                color: white;
+            }"
+                    },
+
+                    new
+                    {
+                        Name = "PowerShell",
+                        Code =
+            @"$name = ""World""
+            Write-Host ""Hello $name"""
+                    }
+                };
+
+            Console.WriteLine(
+                "=== Language Detection Test ===");
+
+            Console.WriteLine();
+
+            foreach (var sample in samples)
+            {
+                string detected =
+                    detector.Detect(sample.Code);
+
+                Console.WriteLine(
+                    "Expected : " + sample.Name);
+
+                Console.WriteLine(
+                    "Detected : " +
+                    (detected ?? "<null>"));
+
+                Console.WriteLine(
+                    "Code:");
+
+                Console.WriteLine(sample.Code);
+
+                Console.WriteLine(
+                    new string('-', 50));
+            }
+        }
 
 
         private static void TestRealThemeRoundTrip()

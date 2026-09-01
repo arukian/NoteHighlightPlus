@@ -2,31 +2,32 @@
  *  Copyright (c) Microsoft. All rights reserved. Licensed under the MIT license.
  */
 
+using Extensibility;
+using GenerateHighlightContent;
+using Helper;
+using Infrastructure.Core;
+using Microsoft.Office.Core;
+using Microsoft.Office.Interop.OneNote;
+using NoteHighlightAddin.Utilities;
+using NoteHighLightForm;
 using System;
+using System.Configuration;
 using System.Diagnostics.CodeAnalysis;
+using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
+using System.Linq;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.ComTypes;
+using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
+using System.Web;
 using System.Windows.Forms;
 using System.Xml.Linq;
-using Extensibility;
-using Microsoft.Office.Core;
-using NoteHighlightAddin.Utilities;
+using static NoteHighlightAddin.LanguageDetectionService;
 using Application = Microsoft.Office.Interop.OneNote.Application;  // Conflicts with System.Windows.Forms
-using System.Reflection;
-using System.Drawing;
-using Microsoft.Office.Interop.OneNote;
-using NoteHighLightForm;
-using System.Text;
-using System.Linq;
-using Helper;
-using System.Threading;
-using System.Web;
-using GenerateHighlightContent;
-using System.Configuration;
-using Infrastructure.Core;
 
 #pragma warning disable CS3003 // Type is not CLS-compliant
 
@@ -37,6 +38,119 @@ namespace NoteHighlightAddin
 
     public class AddIn : IDTExtensibility2, IRibbonExtensibility
     {
+
+        public void ContextMenuTestClicked(IRibbonControl control)
+        {
+            try
+            {
+                LanguagePreferenceProvider
+                    preferenceProvider =
+                        new LanguagePreferenceProvider();
+
+                string requestedLanguage =
+                    preferenceProvider.ReadLanguageTag();
+
+                if (string.IsNullOrWhiteSpace(
+                    requestedLanguage))
+                {
+                    MessageBox.Show(
+                        "No hay un lenguaje seleccionado previamente.",
+                        "NoteHighlight+",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Information);
+
+                    return;
+                }
+
+                string resolvedLanguage =
+                    LanguageDefinitionResolver.Resolve(
+                        requestedLanguage);
+
+                string language =
+                    string.IsNullOrWhiteSpace(
+                        resolvedLanguage)
+                        ? requestedLanguage
+                        : resolvedLanguage;
+
+                Thread t =
+                    new Thread(
+                        () => ShowForm(language, true, true, false));
+
+                t.SetApartmentState(
+                    ApartmentState.STA);
+
+                t.Start();
+            }
+            catch (Exception e)
+            {
+                MessageBox.Show(
+                    "Exception from Quick Highlight: " +
+                    e,
+                    "NoteHighlight+",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+            }
+        }
+
+        public void AutoDetectHighlightClicked(
+    IRibbonControl control)
+        {
+            try
+            {
+                LanguagePreferenceProvider
+                    preferenceProvider =
+                        new LanguagePreferenceProvider();
+
+                string requestedLanguage =
+                    preferenceProvider.ReadLanguageTag();
+
+                if (string.IsNullOrWhiteSpace(
+                    requestedLanguage))
+                {
+                    MessageBox.Show(
+                        "No hay un lenguaje seleccionado previamente.",
+                        "NoteHighlight+",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Information);
+
+                    return;
+                }
+
+                string resolvedLanguage =
+                    LanguageDefinitionResolver.Resolve(
+                        requestedLanguage);
+
+                string fallbackLanguage =
+                    string.IsNullOrWhiteSpace(
+                        resolvedLanguage)
+                        ? requestedLanguage
+                        : resolvedLanguage;
+
+                Thread t =
+                    new Thread(
+                        () => ShowForm(
+                            fallbackLanguage,
+                            true,
+                            true,
+                            true));
+
+                t.SetApartmentState(
+                    ApartmentState.STA);
+
+                t.Start();
+            }
+            catch (Exception e)
+            {
+                MessageBox.Show(
+                    "Exception from Auto Detect Highlight: " +
+                    e,
+                    "NoteHighlight+",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+            }
+        }
+
+
         protected Application OneNoteApplication
         { get; set; }
 
@@ -47,8 +161,6 @@ namespace NoteHighlightAddin
         private HtmlInserter htmlInserter;
 
         private OneNoteService oneNoteService;
-
-        string tag;
 
         private bool QuickStyle { get; set; }
 
@@ -253,29 +365,39 @@ namespace NoteHighlightAddin
             try
             {
                 string requestedLanguage = control.Tag;
+
                 string resolvedLanguage =
                     LanguageDefinitionResolver.Resolve(
                         requestedLanguage);
 
-                tag = string.IsNullOrWhiteSpace(resolvedLanguage)
-                    ? requestedLanguage
-                    : resolvedLanguage;
+                string language =
+                    string.IsNullOrWhiteSpace(
+                        resolvedLanguage)
+                        ? requestedLanguage
+                        : resolvedLanguage;
 
-                Thread t = new Thread(new ThreadStart(ShowForm));
-                t.SetApartmentState(ApartmentState.STA);
+                bool quickStyle =
+                    NoteHighlightForm.Properties
+                        .Settings.Default.QuickStyle;
+
+                Thread t =
+                    new Thread(
+                        () => ShowForm(language, quickStyle, false, false));
+
+                t.SetApartmentState(
+                    ApartmentState.STA);
+
                 t.Start();
             }
             catch (Exception e)
             {
-                MessageBox.Show("Exception from AddInButtonClicked: " + e.ToString());
+                MessageBox.Show(
+                    "Exception from AddInButtonClicked: " +
+                    e);
             }
-
-            //t.Join(5000);
-
-            //ShowForm();
         }
 
-        private void ShowForm()
+        private void ShowForm(string language, bool quickStyle, bool requireSelection, bool autoDetectLanguage)
         {
             try
             {
@@ -330,9 +452,38 @@ namespace NoteHighlightAddin
                     {
                         outline = OneNoteHelper.GetOutline(pageXml, ns);
                     }
+
+                    if (requireSelection && string.IsNullOrWhiteSpace( selectedText))
+                    {
+                        MessageBox.Show(
+                            "Selecciona el código que deseas resaltar.",
+                            "NoteHighlight+",
+                            MessageBoxButtons.OK,
+                            MessageBoxIcon.Information);
+
+                        return;
+                    }
+
+                    if (autoDetectLanguage)
+                    {
+                        LanguageDetectionService detector =
+                            new LanguageDetectionService();
+
+                        LanguageDetectionResult detection =
+                            detector.DetectDetailed(selectedText);
+
+                        if (detection.Confidence ==
+                                LanguageDetectionConfidence.High &&
+                            !string.IsNullOrWhiteSpace(
+                                detection.Language))
+                        {
+                            language = detection.Language;
+                        }
+                    }
+
                 }
 
-                MainForm form = new MainForm(tag, outFileName, selectedText, this.QuickStyle, this.DarkMode);
+                MainForm form = new MainForm(language, outFileName,selectedText, quickStyle, this.DarkMode);
 
                 System.Windows.Forms.Application.Run(form);
                 //}

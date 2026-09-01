@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
-<customUI xmlns="http://schemas.microsoft.com/office/2006/01/customui" loadImage="GetImage">
+<customUI xmlns="http://schemas.microsoft.com/office/2009/07/customui" loadImage="GetImage">
     <ribbon>
         <tabs>
             <tab id="tabNoteHighlight" label="NoteHighlight" keytip="H">
@@ -48,5 +48,22 @@
             </tab>
         </tabs>
     </ribbon>
+	<contextMenus>
+		<contextMenu idMso="ContextMenuText">
+
+			<button
+				id="buttonNoteHighlightContextTest"
+				label="Quick Highlight"
+				onAction="ContextMenuTestClicked"
+        />
+
+			<button
+				id="buttonNoteHighlightAutoDetect"
+				label="Auto Detect Highlight"
+				onAction="AutoDetectHighlightClicked"
+        />
+
+		</contextMenu>
+	</contextMenus>
 </customUI>
 

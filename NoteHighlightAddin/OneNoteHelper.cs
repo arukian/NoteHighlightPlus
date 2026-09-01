@@ -33,7 +33,8 @@ namespace NoteHighlightAddin
         }
 
         public static string[] GetMousePointPosition(
-             string pageXml, XNamespace ns)
+            string pageXml,
+            XNamespace ns)
         {
             if (string.IsNullOrWhiteSpace(pageXml))
             {
@@ -80,8 +81,8 @@ namespace NoteHighlightAddin
         }
 
         public static bool IsSelectedTextInline(
-    string pageXml,
-    XNamespace ns)
+            string pageXml,
+            XNamespace ns)
         {
             if (string.IsNullOrWhiteSpace(pageXml))
             {
@@ -147,9 +148,9 @@ namespace NoteHighlightAddin
         }
 
         public static string GetSelectedText(
-    string pageXml,
-    XNamespace ns,
-    out bool selectedTextFormated)
+            string pageXml,
+            XNamespace ns,
+            out bool selectedTextFormated)
         {
             if (string.IsNullOrWhiteSpace(pageXml))
             {
@@ -220,8 +221,6 @@ namespace NoteHighlightAddin
                 selectedTextFormated = true;
             }
 
-            int initialTabCount = -1;
-
             foreach (XElement line in textNodes)
             {
                 var htmlDocument =
@@ -229,30 +228,14 @@ namespace NoteHighlightAddin
 
                 htmlDocument.LoadHtml(line.Value);
 
-                if (initialTabCount == -1)
-                {
-                    initialTabCount = line
-                        .Ancestors()
-                        .Elements(ns + "T")
-                        .Count();
-                }
+                string decodedText =
+                    HttpUtility.HtmlDecode(
+                        htmlDocument.DocumentNode.InnerText);
 
-                int tabCount =
-                    line.Ancestors()
-                        .Elements(ns + "T")
-                        .Count()
-                    - initialTabCount;
-
-                if (tabCount < 0)
-                {
-                    tabCount = 0;
-                }
-
-                string decodedText = HttpUtility.HtmlDecode(
-                    htmlDocument.DocumentNode.InnerText);
-
-                result.AppendLine(
-                    new string('\t', tabCount) + decodedText);
+                // La sangría original ya forma parte del texto
+                // recuperado desde OneNote.
+                // No añadimos tabs ni espacios artificiales.
+                result.AppendLine(decodedText);
             }
 
             return result
@@ -260,6 +243,4 @@ namespace NoteHighlightAddin
                 .TrimEnd('\r', '\n');
         }
     }
-
-
 }

@@ -62,7 +62,7 @@ namespace NoteHighlightAddin
                     return languages;
 
                 var doc = XDocument.Load(_ribbonXmlPath);
-                var ns = XNamespace.Get("http://schemas.microsoft.com/office/2006/01/customui");
+                var ns = doc.Root?.GetDefaultNamespace() ?? XNamespace.None;
 
                 var buttons = doc.Descendants(ns + "button")
                     .Where(b => b.Attribute("visible")?.Value == "true" || 
@@ -106,7 +106,7 @@ namespace NoteHighlightAddin
                     return false;
 
                 var doc = XDocument.Load(_ribbonXmlPath);
-                var ns = XNamespace.Get("http://schemas.microsoft.com/office/2006/01/customui");
+                var ns = doc.Root?.GetDefaultNamespace() ?? XNamespace.None;
 
                 // Find the Language group
                 var languageGroup = doc.Descendants(ns + "group")
@@ -164,7 +164,7 @@ namespace NoteHighlightAddin
                     return false;
 
                 var doc = XDocument.Load(_ribbonXmlPath);
-                var ns = XNamespace.Get("http://schemas.microsoft.com/office/2006/01/customui");
+                var ns = doc.Root?.GetDefaultNamespace() ?? XNamespace.None;
 
                 var button = doc.Descendants(ns + "button")
                     .FirstOrDefault(b => b.Attribute("tag")?.Value == tag);

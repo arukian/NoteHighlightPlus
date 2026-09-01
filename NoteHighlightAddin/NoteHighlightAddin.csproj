@@ -187,6 +187,7 @@
     <Compile Include="KeywordGroupEditorController.cs" />
     <Compile Include="KeywordGroupSelectionController.cs" />
     <Compile Include="KeywordWordEditorController.cs" />
+    <Compile Include="LanguageDetectionService.cs" />
     <Compile Include="LanguageManager.cs" />
     <Compile Include="LanguageDefinitionResolver.cs" />
     <Compile Include="LanguagePreferenceProvider.cs" />
