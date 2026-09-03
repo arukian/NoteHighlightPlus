@@ -168,43 +168,6 @@ namespace NoteHighlightAddin
 
         public AddIn()
         {
-            // prueba para el instalador - saber donde estan lso dll
-
-            ComStartupLogger.Write("AddIn.ctor ENTER");
-
-            try
-            {
-                ComStartupLogger.Write(
-                    "Assembly = " +
-                    typeof(AddIn).Assembly.FullName);
-
-                ComStartupLogger.Write(
-                    "Location = " +
-                    typeof(AddIn).Assembly.Location);
-
-                ComStartupLogger.Write(
-                    "BaseDirectory = " +
-                    AppDomain.CurrentDomain.BaseDirectory);
-
-                ComStartupLogger.Write(
-                    "64-bit process = " +
-                    Environment.Is64BitProcess);
-
-                // AQUÍ permanece el código actual del constructor.
-
-                ComStartupLogger.Write("AddIn.ctor EXIT");
-            }
-            catch (Exception ex)
-            {
-                ComStartupLogger.WriteException(
-                    "AddIn.ctor",
-                    ex);
-
-                throw;
-            }
-
-            // fin de la prueba 
-
         }
 
         // Added as reference since UnitTesting was still calling for this method and it was not available in the OneNoteService class.  This is a temporary solution until the UnitTests are updated to use the OneNoteService class.
@@ -276,33 +239,9 @@ namespace NoteHighlightAddin
         /// <param name="custom"></param>
         public void OnConnection(object Application, ext_ConnectMode ConnectMode, object AddInInst, ref Array custom)
         {
-            // prueba dlls
-
-            ComStartupLogger.Write("OnConnection ENTER");
-
-            try
-            {
-                ComStartupLogger.Write(
-                    "OnConnection - before SetOneNoteApplication");
-
-                SetOneNoteApplication((Application)Application);
-
-                ComStartupLogger.Write(
-                    "OnConnection - after SetOneNoteApplication");
-
-                ComStartupLogger.Write("OnConnection EXIT");
-            }
-            catch (Exception ex)
-            {
-                ComStartupLogger.WriteException(
-                    "OnConnection",
-                    ex);
-
-                throw;
-            }
+            SetOneNoteApplication((Application)Application);
         }
-
-
+        
         // Updated to use OneNoteApplication from OneNoteService
         public void SetOneNoteApplication(Application application)
         {

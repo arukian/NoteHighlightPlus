@@ -21,6 +21,12 @@
         }
         "Entry"
         {
+        "MsmKey" = "8:_140EF4FA891C9BDFB8B9C674B1C629BD"
+        "OwnerKey" = "8:_692D7E391D074D36AD2530720FB8D6C4"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
         "MsmKey" = "8:_37C3D30F5B2C49F25269ADBCA9AC2F12"
         "OwnerKey" = "8:_692D7E391D074D36AD2530720FB8D6C4"
         "MsmSig" = "8:_UNDEFINED"
@@ -45,20 +51,8 @@
         }
         "Entry"
         {
-        "MsmKey" = "8:_5DCE8FA38C6D9C8DA31E30167F378671"
-        "OwnerKey" = "8:_98DA12EFA973189926D668ED5124E25C"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
         "MsmKey" = "8:_604B55ED6894445BB40FB21438A18596"
         "OwnerKey" = "8:_UNDEFINED"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
-        "MsmKey" = "8:_61F0ACA7EA66EB5BF6C19F3621B2DE8E"
-        "OwnerKey" = "8:_98DA12EFA973189926D668ED5124E25C"
         "MsmSig" = "8:_UNDEFINED"
         }
         "Entry"
@@ -82,7 +76,7 @@
         "Entry"
         {
         "MsmKey" = "8:_7BD9CB580802773CE774209AE9D83AEF"
-        "OwnerKey" = "8:_692D7E391D074D36AD2530720FB8D6C4"
+        "OwnerKey" = "8:_140EF4FA891C9BDFB8B9C674B1C629BD"
         "MsmSig" = "8:_UNDEFINED"
         }
         "Entry"
@@ -95,6 +89,12 @@
         {
         "MsmKey" = "8:_7BD9CB580802773CE774209AE9D83AEF"
         "OwnerKey" = "8:_696F461E468541199B471755B485368E"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
+        "MsmKey" = "8:_7BD9CB580802773CE774209AE9D83AEF"
+        "OwnerKey" = "8:_692D7E391D074D36AD2530720FB8D6C4"
         "MsmSig" = "8:_UNDEFINED"
         }
         "Entry"
@@ -123,14 +123,8 @@
         }
         "Entry"
         {
-        "MsmKey" = "8:_98DA12EFA973189926D668ED5124E25C"
-        "OwnerKey" = "8:_692D7E391D074D36AD2530720FB8D6C4"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
         "MsmKey" = "8:_9D0579641EB5D46CE3147800D4D1B203"
-        "OwnerKey" = "8:_692D7E391D074D36AD2530720FB8D6C4"
+        "OwnerKey" = "8:_140EF4FA891C9BDFB8B9C674B1C629BD"
         "MsmSig" = "8:_UNDEFINED"
         }
         "Entry"
@@ -143,6 +137,12 @@
         {
         "MsmKey" = "8:_9D0579641EB5D46CE3147800D4D1B203"
         "OwnerKey" = "8:_696F461E468541199B471755B485368E"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
+        "MsmKey" = "8:_9D0579641EB5D46CE3147800D4D1B203"
+        "OwnerKey" = "8:_692D7E391D074D36AD2530720FB8D6C4"
         "MsmSig" = "8:_UNDEFINED"
         }
         "Entry"
@@ -202,37 +202,7 @@
         "Entry"
         {
         "MsmKey" = "8:_UNDEFINED"
-        "OwnerKey" = "8:_7BD9CB580802773CE774209AE9D83AEF"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
-        "MsmKey" = "8:_UNDEFINED"
-        "OwnerKey" = "8:_9D0579641EB5D46CE3147800D4D1B203"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
-        "MsmKey" = "8:_UNDEFINED"
-        "OwnerKey" = "8:_3B8CC1FE167B4AE78A15A070A64D25AC"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
-        "MsmKey" = "8:_UNDEFINED"
-        "OwnerKey" = "8:_8DD6A0886D81479E9B61782455CBF9E5"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
-        "MsmKey" = "8:_UNDEFINED"
         "OwnerKey" = "8:_FAD100D0904D46B1927CEB4ABF5F6361"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
-        "MsmKey" = "8:_UNDEFINED"
-        "OwnerKey" = "8:_696F461E468541199B471755B485368E"
         "MsmSig" = "8:_UNDEFINED"
         }
         "Entry"
@@ -244,13 +214,31 @@
         "Entry"
         {
         "MsmKey" = "8:_UNDEFINED"
+        "OwnerKey" = "8:_8DD6A0886D81479E9B61782455CBF9E5"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
+        "MsmKey" = "8:_UNDEFINED"
         "OwnerKey" = "8:_87C26098465C44E49340F45D0DA3C78A"
         "MsmSig" = "8:_UNDEFINED"
         }
         "Entry"
         {
         "MsmKey" = "8:_UNDEFINED"
+        "OwnerKey" = "8:_696F461E468541199B471755B485368E"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
+        "MsmKey" = "8:_UNDEFINED"
         "OwnerKey" = "8:_57149DCD763647EEAE00E2F0B7057334"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
+        "MsmKey" = "8:_UNDEFINED"
+        "OwnerKey" = "8:_3B8CC1FE167B4AE78A15A070A64D25AC"
         "MsmSig" = "8:_UNDEFINED"
         }
         "Entry"
@@ -286,19 +274,19 @@
         "Entry"
         {
         "MsmKey" = "8:_UNDEFINED"
-        "OwnerKey" = "8:_98DA12EFA973189926D668ED5124E25C"
+        "OwnerKey" = "8:_140EF4FA891C9BDFB8B9C674B1C629BD"
         "MsmSig" = "8:_UNDEFINED"
         }
         "Entry"
         {
         "MsmKey" = "8:_UNDEFINED"
-        "OwnerKey" = "8:_61F0ACA7EA66EB5BF6C19F3621B2DE8E"
+        "OwnerKey" = "8:_7BD9CB580802773CE774209AE9D83AEF"
         "MsmSig" = "8:_UNDEFINED"
         }
         "Entry"
         {
         "MsmKey" = "8:_UNDEFINED"
-        "OwnerKey" = "8:_5DCE8FA38C6D9C8DA31E30167F378671"
+        "OwnerKey" = "8:_9D0579641EB5D46CE3147800D4D1B203"
         "MsmSig" = "8:_UNDEFINED"
         }
         "Entry"
@@ -477,6 +465,37 @@
             "IsDependency" = "11:TRUE"
             "IsolateTo" = "8:"
             }
+            "{9F6F8455-1EF1-4B85-886A-4223BCC8E7F7}:_140EF4FA891C9BDFB8B9C674B1C629BD"
+            {
+            "AssemblyRegister" = "3:1"
+            "AssemblyIsInGAC" = "11:FALSE"
+            "AssemblyAsmDisplayName" = "8:GenerateHighlightContent, Version=2.7.0.1, Culture=neutral, PublicKeyToken=77d9ec1ac4fb0cdc, processorArchitecture=MSIL"
+                "ScatterAssemblies"
+                {
+                    "_140EF4FA891C9BDFB8B9C674B1C629BD"
+                    {
+                    "Name" = "8:GenerateHighlightContent.dll"
+                    "Attributes" = "3:512"
+                    }
+                }
+            "SourcePath" = "8:GenerateHighlightContent.dll"
+            "TargetName" = "8:"
+            "Tag" = "8:"
+            "Folder" = "8:_76DE0C3E4C3C41398EBF2960C9F81C36"
+            "Condition" = "8:"
+            "Transitive" = "11:FALSE"
+            "Vital" = "11:TRUE"
+            "ReadOnly" = "11:FALSE"
+            "Hidden" = "11:FALSE"
+            "System" = "11:FALSE"
+            "Permanent" = "11:FALSE"
+            "SharedLegacy" = "11:FALSE"
+            "PackageAs" = "3:1"
+            "Register" = "3:1"
+            "Exclude" = "11:TRUE"
+            "IsDependency" = "11:TRUE"
+            "IsolateTo" = "8:"
+            }
             "{9F6F8455-1EF1-4B85-886A-4223BCC8E7F7}:_37C3D30F5B2C49F25269ADBCA9AC2F12"
             {
             "AssemblyRegister" = "3:1"
@@ -590,37 +609,6 @@
             "IsDependency" = "11:FALSE"
             "IsolateTo" = "8:"
             }
-            "{9F6F8455-1EF1-4B85-886A-4223BCC8E7F7}:_5DCE8FA38C6D9C8DA31E30167F378671"
-            {
-            "AssemblyRegister" = "3:1"
-            "AssemblyIsInGAC" = "11:FALSE"
-            "AssemblyAsmDisplayName" = "8:Helper, Version=1.0.0.0, Culture=neutral, PublicKeyToken=609b64b0cf912098, processorArchitecture=MSIL"
-                "ScatterAssemblies"
-                {
-                    "_5DCE8FA38C6D9C8DA31E30167F378671"
-                    {
-                    "Name" = "8:Helper.dll"
-                    "Attributes" = "3:512"
-                    }
-                }
-            "SourcePath" = "8:Helper.dll"
-            "TargetName" = "8:"
-            "Tag" = "8:"
-            "Folder" = "8:_76DE0C3E4C3C41398EBF2960C9F81C36"
-            "Condition" = "8:"
-            "Transitive" = "11:FALSE"
-            "Vital" = "11:TRUE"
-            "ReadOnly" = "11:FALSE"
-            "Hidden" = "11:FALSE"
-            "System" = "11:FALSE"
-            "Permanent" = "11:FALSE"
-            "SharedLegacy" = "11:FALSE"
-            "PackageAs" = "3:1"
-            "Register" = "3:1"
-            "Exclude" = "11:TRUE"
-            "IsDependency" = "11:TRUE"
-            "IsolateTo" = "8:"
-            }
             "{1FB2D0AE-D3B9-43D4-B9DD-F88EC61E35DE}:_604B55ED6894445BB40FB21438A18596"
             {
             "SourcePath" = "8:..\\NoteHighlightAddin\\icon.ico"
@@ -639,37 +627,6 @@
             "Register" = "3:1"
             "Exclude" = "11:FALSE"
             "IsDependency" = "11:FALSE"
-            "IsolateTo" = "8:"
-            }
-            "{9F6F8455-1EF1-4B85-886A-4223BCC8E7F7}:_61F0ACA7EA66EB5BF6C19F3621B2DE8E"
-            {
-            "AssemblyRegister" = "3:1"
-            "AssemblyIsInGAC" = "11:FALSE"
-            "AssemblyAsmDisplayName" = "8:Infrastructure.Core, Version=1.0.0.0, Culture=neutral, PublicKeyToken=77d9ec1ac4fb0cdc, processorArchitecture=MSIL"
-                "ScatterAssemblies"
-                {
-                    "_61F0ACA7EA66EB5BF6C19F3621B2DE8E"
-                    {
-                    "Name" = "8:Infrastructure.Core.dll"
-                    "Attributes" = "3:512"
-                    }
-                }
-            "SourcePath" = "8:Infrastructure.Core.dll"
-            "TargetName" = "8:"
-            "Tag" = "8:"
-            "Folder" = "8:_76DE0C3E4C3C41398EBF2960C9F81C36"
-            "Condition" = "8:"
-            "Transitive" = "11:FALSE"
-            "Vital" = "11:TRUE"
-            "ReadOnly" = "11:FALSE"
-            "Hidden" = "11:FALSE"
-            "System" = "11:FALSE"
-            "Permanent" = "11:FALSE"
-            "SharedLegacy" = "11:FALSE"
-            "PackageAs" = "3:1"
-            "Register" = "3:1"
-            "Exclude" = "11:TRUE"
-            "IsDependency" = "11:TRUE"
             "IsolateTo" = "8:"
             }
             "{9F6F8455-1EF1-4B85-886A-4223BCC8E7F7}:_68D7F35033C4EA900E5D408B956931AE"
@@ -789,10 +746,10 @@
             "Hidden" = "11:FALSE"
             "System" = "11:FALSE"
             "Permanent" = "11:FALSE"
-            "SharedLegacy" = "11:FALSE"
+            "SharedLegacy" = "11:TRUE"
             "PackageAs" = "3:1"
             "Register" = "3:1"
-            "Exclude" = "11:FALSE"
+            "Exclude" = "11:TRUE"
             "IsDependency" = "11:FALSE"
             "IsolateTo" = "8:"
             }
@@ -889,37 +846,6 @@
             "IsDependency" = "11:TRUE"
             "IsolateTo" = "8:"
             }
-            "{9F6F8455-1EF1-4B85-886A-4223BCC8E7F7}:_98DA12EFA973189926D668ED5124E25C"
-            {
-            "AssemblyRegister" = "3:1"
-            "AssemblyIsInGAC" = "11:FALSE"
-            "AssemblyAsmDisplayName" = "8:GenerateHighlightContent, Version=2.7.0.1, Culture=neutral, PublicKeyToken=77d9ec1ac4fb0cdc, processorArchitecture=MSIL"
-                "ScatterAssemblies"
-                {
-                    "_98DA12EFA973189926D668ED5124E25C"
-                    {
-                    "Name" = "8:GenerateHighlightContent.dll"
-                    "Attributes" = "3:512"
-                    }
-                }
-            "SourcePath" = "8:GenerateHighlightContent.dll"
-            "TargetName" = "8:"
-            "Tag" = "8:"
-            "Folder" = "8:_76DE0C3E4C3C41398EBF2960C9F81C36"
-            "Condition" = "8:"
-            "Transitive" = "11:FALSE"
-            "Vital" = "11:TRUE"
-            "ReadOnly" = "11:FALSE"
-            "Hidden" = "11:FALSE"
-            "System" = "11:FALSE"
-            "Permanent" = "11:FALSE"
-            "SharedLegacy" = "11:FALSE"
-            "PackageAs" = "3:1"
-            "Register" = "3:1"
-            "Exclude" = "11:TRUE"
-            "IsDependency" = "11:TRUE"
-            "IsolateTo" = "8:"
-            }
             "{9F6F8455-1EF1-4B85-886A-4223BCC8E7F7}:_9D0579641EB5D46CE3147800D4D1B203"
             {
             "AssemblyRegister" = "3:1"
@@ -947,7 +873,7 @@
             "SharedLegacy" = "11:FALSE"
             "PackageAs" = "3:1"
             "Register" = "3:1"
-            "Exclude" = "11:TRUE"
+            "Exclude" = "11:FALSE"
             "IsDependency" = "11:TRUE"
             "IsolateTo" = "8:"
             }
@@ -1270,15 +1196,15 @@
         {
         "Name" = "8:NoteHighlightAddin"
         "ProductName" = "8:NoteHighlight+"
-        "ProductCode" = "8:{366E1BFF-13A1-4BB1-A626-11914C901B5D}"
-        "PackageCode" = "8:{AFC0B708-A83E-4649-8EBE-A4188B19E420}"
+        "ProductCode" = "8:{C1AB1A28-44AB-40A4-85E3-8395A4DED8DD}"
+        "PackageCode" = "8:{EC1504F5-52E1-4B2F-B75C-10D9BC286282}"
         "UpgradeCode" = "8:{0025873C-20C5-48D6-A93A-FBD3891A9233}"
         "AspNetVersion" = "8:4.0.30319.0"
         "RestartWWWService" = "11:FALSE"
         "RemovePreviousVersions" = "11:TRUE"
         "DetectNewerInstalledVersion" = "11:TRUE"
-        "InstallAllUsers" = "11:FALSE"
-        "ProductVersion" = "8:4.0.3"
+        "InstallAllUsers" = "11:TRUE"
+        "ProductVersion" = "8:4.1.0"
         "Manufacturer" = "8:Arukian"
         "ARPHELPTELEPHONE" = "8:"
         "ARPHELPLINK" = "8:"
@@ -1420,7 +1346,7 @@
                                                         {
                                                             "{60EA8692-D2D5-43EB-80DC-7906BF13D6EF}:_F7AC1B508D9C4A8D812B74D423321C9B"
                                                             {
-                                                            "Name" = "8:NoteHighlightAddin"
+                                                            "Name" = "8:NoteHighlight2016.AddIn"
                                                             "Condition" = "8:"
                                                             "AlwaysCreate" = "11:FALSE"
                                                             "DeleteAtUninstall" = "11:TRUE"
@@ -1476,92 +1402,6 @@
                                 {
                                 }
                             }
-                            "{60EA8692-D2D5-43EB-80DC-7906BF13D6EF}:_FD0F9825714E47649EBFBC06BD1E734F"
-                            {
-                            "Name" = "8:Classes"
-                            "Condition" = "8:"
-                            "AlwaysCreate" = "11:FALSE"
-                            "DeleteAtUninstall" = "11:FALSE"
-                            "Transitive" = "11:FALSE"
-                                "Keys"
-                                {
-                                    "{60EA8692-D2D5-43EB-80DC-7906BF13D6EF}:_B43095CA40D94F779A8EAA36494E3CB4"
-                                    {
-                                    "Name" = "8:CLSID"
-                                    "Condition" = "8:"
-                                    "AlwaysCreate" = "11:FALSE"
-                                    "DeleteAtUninstall" = "11:FALSE"
-                                    "Transitive" = "11:FALSE"
-                                        "Keys"
-                                        {
-                                            "{60EA8692-D2D5-43EB-80DC-7906BF13D6EF}:_88A39E02EF2D463CB938160AC101CB31"
-                                            {
-                                            "Name" = "8:{4C6B0362-F139-417F-9661-3663C268B9E9}"
-                                            "Condition" = "8:"
-                                            "AlwaysCreate" = "11:FALSE"
-                                            "DeleteAtUninstall" = "11:TRUE"
-                                            "Transitive" = "11:FALSE"
-                                                "Keys"
-                                                {
-                                                }
-                                                "Values"
-                                                {
-                                                    "{ADCFDA98-8FDD-45E4-90BC-E3D20B029870}:_A7A3169AFDED428296AD0C91D431AC09"
-                                                    {
-                                                    "Name" = "8:AppID"
-                                                    "Condition" = "8:"
-                                                    "Transitive" = "11:FALSE"
-                                                    "ValueTypes" = "3:1"
-                                                    "Value" = "8:{4C6B0362-F139-417F-9661-3663C268B9E9}"
-                                                    }
-                                                }
-                                            }
-                                        }
-                                        "Values"
-                                        {
-                                        }
-                                    }
-                                    "{60EA8692-D2D5-43EB-80DC-7906BF13D6EF}:_FF6F47F4B98E440DA76C4F08325728A3"
-                                    {
-                                    "Name" = "8:AppID"
-                                    "Condition" = "8:"
-                                    "AlwaysCreate" = "11:FALSE"
-                                    "DeleteAtUninstall" = "11:FALSE"
-                                    "Transitive" = "11:FALSE"
-                                        "Keys"
-                                        {
-                                            "{60EA8692-D2D5-43EB-80DC-7906BF13D6EF}:_8F6F08870AB84046A3518DDF84C3466A"
-                                            {
-                                            "Name" = "8:{4C6B0362-F139-417F-9661-3663C268B9E9}"
-                                            "Condition" = "8:"
-                                            "AlwaysCreate" = "11:FALSE"
-                                            "DeleteAtUninstall" = "11:TRUE"
-                                            "Transitive" = "11:FALSE"
-                                                "Keys"
-                                                {
-                                                }
-                                                "Values"
-                                                {
-                                                    "{ADCFDA98-8FDD-45E4-90BC-E3D20B029870}:_DAA8A82B12254B9089A091DD73C3D904"
-                                                    {
-                                                    "Name" = "8:DllSurrogate"
-                                                    "Condition" = "8:"
-                                                    "Transitive" = "11:FALSE"
-                                                    "ValueTypes" = "3:1"
-                                                    "Value" = "8:"
-                                                    }
-                                                }
-                                            }
-                                        }
-                                        "Values"
-                                        {
-                                        }
-                                    }
-                                }
-                                "Values"
-                                {
-                                }
-                            }
                         }
                         "Values"
                         {
@@ -1582,19 +1422,19 @@
                     "Transitive" = "11:FALSE"
                         "Keys"
                         {
-                            "{60EA8692-D2D5-43EB-80DC-7906BF13D6EF}:_80EFEB6F8B61425B8FBD17728928F551"
+                            "{60EA8692-D2D5-43EB-80DC-7906BF13D6EF}:_AD6582DEF67A4E21A6179FAC32160945"
                             {
                             "Name" = "8:{4C6B0362-F139-417F-9661-3663C268B9E9}"
                             "Condition" = "8:"
                             "AlwaysCreate" = "11:FALSE"
-                            "DeleteAtUninstall" = "11:TRUE"
+                            "DeleteAtUninstall" = "11:FALSE"
                             "Transitive" = "11:FALSE"
                                 "Keys"
                                 {
                                 }
                                 "Values"
                                 {
-                                    "{ADCFDA98-8FDD-45E4-90BC-E3D20B029870}:_AF39ED4D4B2F414EB124E9F27F5892EB"
+                                    "{ADCFDA98-8FDD-45E4-90BC-E3D20B029870}:_ED92AD7DCB4E42B4B8BDBC3E24F073C3"
                                     {
                                     "Name" = "8:DllSurrogate"
                                     "Condition" = "8:"
@@ -1618,145 +1458,19 @@
                     "Transitive" = "11:FALSE"
                         "Keys"
                         {
-                            "{60EA8692-D2D5-43EB-80DC-7906BF13D6EF}:_FEA1447FA6204611896D7C380A1DBAF8"
+                            "{60EA8692-D2D5-43EB-80DC-7906BF13D6EF}:_A5FE4645660249AD902A34A135F6CED5"
                             {
                             "Name" = "8:{4C6B0362-F139-417F-9661-3663C268B9E9}"
                             "Condition" = "8:"
                             "AlwaysCreate" = "11:FALSE"
-                            "DeleteAtUninstall" = "11:TRUE"
+                            "DeleteAtUninstall" = "11:FALSE"
                             "Transitive" = "11:FALSE"
                                 "Keys"
                                 {
-                                    "{60EA8692-D2D5-43EB-80DC-7906BF13D6EF}:_17B34B70468E43E1AA0C6D0C42B498E9"
-                                    {
-                                    "Name" = "8:VersionIndependentProgID"
-                                    "Condition" = "8:"
-                                    "AlwaysCreate" = "11:FALSE"
-                                    "DeleteAtUninstall" = "11:FALSE"
-                                    "Transitive" = "11:FALSE"
-                                        "Keys"
-                                        {
-                                        }
-                                        "Values"
-                                        {
-                                            "{ADCFDA98-8FDD-45E4-90BC-E3D20B029870}:_7B5DB1E2845E42928C0CF40FFED89457"
-                                            {
-                                            "Name" = "8:"
-                                            "Condition" = "8:"
-                                            "Transitive" = "11:FALSE"
-                                            "ValueTypes" = "3:1"
-                                            "Value" = "8:NoteHighlight2016.AddIn"
-                                            }
-                                        }
-                                    }
-                                    "{60EA8692-D2D5-43EB-80DC-7906BF13D6EF}:_3DE9B6F3ABB643299290C264227149F7"
-                                    {
-                                    "Name" = "8:InprocServer32"
-                                    "Condition" = "8:"
-                                    "AlwaysCreate" = "11:FALSE"
-                                    "DeleteAtUninstall" = "11:FALSE"
-                                    "Transitive" = "11:FALSE"
-                                        "Keys"
-                                        {
-                                        }
-                                        "Values"
-                                        {
-                                            "{ADCFDA98-8FDD-45E4-90BC-E3D20B029870}:_05469A263DF34154A66ECEDA6D49822E"
-                                            {
-                                            "Name" = "8:"
-                                            "Condition" = "8:"
-                                            "Transitive" = "11:FALSE"
-                                            "ValueTypes" = "3:1"
-                                            "Value" = "8:"
-                                            }
-                                            "{ADCFDA98-8FDD-45E4-90BC-E3D20B029870}:_0CC9843EA1A648E6978BD1CF78AAC89D"
-                                            {
-                                            "Name" = "8:ThreadingModel"
-                                            "Condition" = "8:"
-                                            "Transitive" = "11:FALSE"
-                                            "ValueTypes" = "3:1"
-                                            "Value" = "8:Apartment"
-                                            }
-                                        }
-                                    }
-                                    "{60EA8692-D2D5-43EB-80DC-7906BF13D6EF}:_A81F2AB28AD84E3C8CAECA2C0A3E3A70"
-                                    {
-                                    "Name" = "8:TypeLib"
-                                    "Condition" = "8:"
-                                    "AlwaysCreate" = "11:FALSE"
-                                    "DeleteAtUninstall" = "11:FALSE"
-                                    "Transitive" = "11:FALSE"
-                                        "Keys"
-                                        {
-                                        }
-                                        "Values"
-                                        {
-                                            "{ADCFDA98-8FDD-45E4-90BC-E3D20B029870}:_A6CC73C1FD16467D8D8E777166283159"
-                                            {
-                                            "Name" = "8:"
-                                            "Condition" = "8:"
-                                            "Transitive" = "11:FALSE"
-                                            "ValueTypes" = "3:1"
-                                            "Value" = "8:{4C6B0362-F139-417F-9661-3663C268B9E9}"
-                                            }
-                                        }
-                                    }
-                                    "{60EA8692-D2D5-43EB-80DC-7906BF13D6EF}:_F363B67E69B4414696E2F3D49793EFB1"
-                                    {
-                                    "Name" = "8:ProgID"
-                                    "Condition" = "8:"
-                                    "AlwaysCreate" = "11:FALSE"
-                                    "DeleteAtUninstall" = "11:FALSE"
-                                    "Transitive" = "11:FALSE"
-                                        "Keys"
-                                        {
-                                        }
-                                        "Values"
-                                        {
-                                            "{ADCFDA98-8FDD-45E4-90BC-E3D20B029870}:_7616FC5463A04C95812A08A21F23C0B2"
-                                            {
-                                            "Name" = "8:"
-                                            "Condition" = "8:"
-                                            "Transitive" = "11:FALSE"
-                                            "ValueTypes" = "3:1"
-                                            "Value" = "8:NoteHighlight2016.AddIn"
-                                            }
-                                        }
-                                    }
-                                    "{60EA8692-D2D5-43EB-80DC-7906BF13D6EF}:_FF78EABCA78B435EBFBF16265064EC88"
-                                    {
-                                    "Name" = "8:Programmable"
-                                    "Condition" = "8:"
-                                    "AlwaysCreate" = "11:FALSE"
-                                    "DeleteAtUninstall" = "11:FALSE"
-                                    "Transitive" = "11:FALSE"
-                                        "Keys"
-                                        {
-                                        }
-                                        "Values"
-                                        {
-                                            "{ADCFDA98-8FDD-45E4-90BC-E3D20B029870}:_E2006829A2C5453F97BB135922FBE385"
-                                            {
-                                            "Name" = "8:"
-                                            "Condition" = "8:"
-                                            "Transitive" = "11:FALSE"
-                                            "ValueTypes" = "3:1"
-                                            "Value" = "8:"
-                                            }
-                                        }
-                                    }
                                 }
                                 "Values"
                                 {
-                                    "{ADCFDA98-8FDD-45E4-90BC-E3D20B029870}:_06C3319A07FA4A07A7EC1E2181590857"
-                                    {
-                                    "Name" = "8:"
-                                    "Condition" = "8:"
-                                    "Transitive" = "11:FALSE"
-                                    "ValueTypes" = "3:1"
-                                    "Value" = "8:NoteHighlightAddIn Class"
-                                    }
-                                    "{ADCFDA98-8FDD-45E4-90BC-E3D20B029870}:_75BFBC491AF3480F8F7187FB6D48D560"
+                                    "{ADCFDA98-8FDD-45E4-90BC-E3D20B029870}:_B5C025DF38C84AF89B2BB11761ABC55A"
                                     {
                                     "Name" = "8:AppID"
                                     "Condition" = "8:"
@@ -1769,72 +1483,6 @@
                         }
                         "Values"
                         {
-                        }
-                    }
-                    "{60EA8692-D2D5-43EB-80DC-7906BF13D6EF}:_716C060777B448F9AD2A0270AD2CB963"
-                    {
-                    "Name" = "8:NoteHighlightAddin"
-                    "Condition" = "8:"
-                    "AlwaysCreate" = "11:FALSE"
-                    "DeleteAtUninstall" = "11:TRUE"
-                    "Transitive" = "11:FALSE"
-                        "Keys"
-                        {
-                            "{60EA8692-D2D5-43EB-80DC-7906BF13D6EF}:_A1D9D268B4F941698C203DD59921172C"
-                            {
-                            "Name" = "8:CurVer"
-                            "Condition" = "8:"
-                            "AlwaysCreate" = "11:FALSE"
-                            "DeleteAtUninstall" = "11:FALSE"
-                            "Transitive" = "11:FALSE"
-                                "Keys"
-                                {
-                                }
-                                "Values"
-                                {
-                                    "{ADCFDA98-8FDD-45E4-90BC-E3D20B029870}:_EFE0FAA6FF5A4B44B251B74C85BB157F"
-                                    {
-                                    "Name" = "8:"
-                                    "Condition" = "8:"
-                                    "Transitive" = "11:FALSE"
-                                    "ValueTypes" = "3:1"
-                                    "Value" = "8:NoteHighlightAddin"
-                                    }
-                                }
-                            }
-                            "{60EA8692-D2D5-43EB-80DC-7906BF13D6EF}:_FAE6C93CC26E49738614936CF6794213"
-                            {
-                            "Name" = "8:CLSID"
-                            "Condition" = "8:"
-                            "AlwaysCreate" = "11:FALSE"
-                            "DeleteAtUninstall" = "11:FALSE"
-                            "Transitive" = "11:FALSE"
-                                "Keys"
-                                {
-                                }
-                                "Values"
-                                {
-                                    "{ADCFDA98-8FDD-45E4-90BC-E3D20B029870}:_810A270EB5834C68BC5BC909F39A040D"
-                                    {
-                                    "Name" = "8:"
-                                    "Condition" = "8:"
-                                    "Transitive" = "11:FALSE"
-                                    "ValueTypes" = "3:1"
-                                    "Value" = "8:{4C6B0362-F139-417F-9661-3663C268B9E9}"
-                                    }
-                                }
-                            }
-                        }
-                        "Values"
-                        {
-                            "{ADCFDA98-8FDD-45E4-90BC-E3D20B029870}:_CA767166FD144ED595585B3B9A835D89"
-                            {
-                            "Name" = "8:"
-                            "Condition" = "8:"
-                            "Transitive" = "11:FALSE"
-                            "ValueTypes" = "3:1"
-                            "Value" = "8:Addin class"
-                            }
                         }
                     }
                 }
